@@ -1,0 +1,1 @@
+DROP TABLE fun_with_flags_toggles;
