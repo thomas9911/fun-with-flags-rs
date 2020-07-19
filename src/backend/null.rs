@@ -28,7 +28,7 @@ impl Backend {
     }
 
     pub fn backend_name() -> &'static str {
-        "mock"
+        "null"
     }
 }
 

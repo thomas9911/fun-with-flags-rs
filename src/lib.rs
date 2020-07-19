@@ -26,7 +26,7 @@ pub fn establish_connection_to_database(database_name: &str) -> DBConnection {
     use diesel::Connection;
 
     dotenv().unwrap();
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let database_url = env::var("DATABASE_ADDRESS").expect("DATABASE_URL must be set");
 
     DBConnection::establish(&format!("{}/{}", database_url, database_name))
         .expect(&format!("Error connecting to {}", database_url))
@@ -236,6 +236,6 @@ mod tests {
             }])
         });
 
-        assert!(enable_for("oke", &"testing".to_string()).is_ok());
+        assert!(enable_for("oke", &"testing").is_ok());
     }
 }

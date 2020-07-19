@@ -2,8 +2,8 @@ use crate::FeatureFlag;
 
 cfg_if::cfg_if! {
     if #[cfg(test)] {
-        pub mod mock;
-        pub use mock::{MockBackend as Backend, DBConnection, GetOutput, SetOutput, DB};
+        pub mod null;
+        pub use null::{MockBackend as Backend, DBConnection, GetOutput, SetOutput, DB};
 
     } else {
         pub mod postgres;
