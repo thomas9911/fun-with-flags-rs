@@ -1,0 +1,30 @@
+name: Rust
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: username
+          POSTGRES_PASSWORD: password
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests (postgres)
+      run: DATABASE_ADDRESS=postgres://username:password@postgres DATABASE_NAME=fun_with_flags_repo cargo test --features postgres-backend --verbose
+    - name: Run tests (redis)
+      run: DATABASE_ADDRESS=redis://redis DATABASE_NAME=0 cargo test --features redis-backend --verbose
