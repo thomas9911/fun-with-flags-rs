@@ -12,19 +12,13 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    services:
-      redis:
-        image: redis
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_USER: username
-          POSTGRES_PASSWORD: password
     steps:
     - uses: actions/checkout@v2
+    - name: Build the stack
+      run: docker-compose up -d
     - name: Build
       run: cargo build --verbose
     - name: Run tests (postgres)
-      run: DATABASE_ADDRESS=postgres://username:password@postgres DATABASE_NAME=fun_with_flags_repo cargo test --features postgres-backend --verbose
+      run: ./test_postgres.sh
     - name: Run tests (redis)
-      run: DATABASE_ADDRESS=redis://redis DATABASE_NAME=0 cargo test --features redis-backend --verbose
+      run: ./test_redis.sh
