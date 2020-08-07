@@ -19,6 +19,6 @@ jobs:
     - name: Build
       run: cargo build --verbose
     - name: Run tests (postgres)
-      run: ./test_postgres.sh
+      run: bash ./test_postgres.sh
     - name: Run tests (redis)
-      run: ./test_redis.sh
+      run: bash ./test_redis.sh
