@@ -23,14 +23,14 @@ pub mod traits;
 pub use backend::{Backend, DBConnection, SetOutput as Output};
 
 pub fn establish_connection() -> DBConnection {
-    dotenv().unwrap();
+    dotenv().ok();
 
     let database_name = env::var("DATABASE_NAME").expect("DATABASE_NAME must be set");
     establish_connection_to_database(&database_name)
 }
 
 pub fn establish_connection_to_database(database_name: &str) -> DBConnection {
-    dotenv().unwrap();
+    dotenv().ok();
     let database_url = env::var("DATABASE_ADDRESS").expect("DATABASE_URL must be set");
 
     DBConnection::establish(&format!("{}/{}", database_url, database_name))

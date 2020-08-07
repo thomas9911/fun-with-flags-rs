@@ -105,11 +105,27 @@ mod redis_test_context {
     }
 }
 
-#[cfg(feature = "redis-backend")]
-use redis_test_context::TestContext;
+mod empty_test_context {
+    #[allow(dead_code)]
+    pub struct TestContext;
 
-#[cfg(feature = "postgres-backend")]
-use postgres_test_context::TestContext;
+    impl TestContext {
+        #[allow(dead_code)]
+        pub fn new() -> Self {
+            TestContext {}
+        }
+    }
+}
+
+cfg_if::cfg_if! {
+    if #[cfg(feature = "redis-backend")]{
+        use redis_test_context::TestContext;
+    } else if #[cfg(feature = "postgres-backend")] {
+        use postgres_test_context::TestContext;
+    } else {
+        use empty_test_context::TestContext;
+    }
+}
 
 #[test]
 #[serial]
