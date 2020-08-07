@@ -1,4 +1,5 @@
 use crate::models::{FeatureFlag, RawOptionalFeatureFlag, RawOptionalFeatureFlags};
+use std::collections::HashSet;
 
 pub type DB = ();
 pub type DBConnection = Connection;
@@ -56,8 +57,10 @@ impl Connection {
 
 impl Backend {
     pub fn set(pool: &DBConnection, flag: FeatureFlag) -> SetOutput {
-        let new_pool = pool.pool.clone();
-        let mut conn = new_pool.get().unwrap();
+        // let new_pool = pool.pool.clone();
+        // let mut conn = new_pool.get().unwrap();
+
+        let mut conn = Self::create_conn(pool).unwrap();
 
         let (k, v) = flag.to_redis_value();
         let key = flag_key(&flag);
@@ -77,8 +80,10 @@ impl Backend {
     }
 
     pub fn get(pool: &DBConnection, flag: FeatureFlag) -> GetOutput {
-        let pool = pool.pool.clone();
-        let mut conn = pool.get().unwrap();
+        // let pool = pool.pool.clone();
+        // let mut conn = pool.get().unwrap();
+
+        let mut conn = Self::create_conn(pool).unwrap();
 
         let mut map: RawOptionalFeatureFlags = conn.hgetall(flag_key(&flag)).expect("handle error");
 
@@ -90,6 +95,41 @@ impl Backend {
         }
     }
 
+    pub fn all_flags_names(pool: &DBConnection) -> Result<HashSet<String>, Error> {
+        let mut conn = Self::create_conn(pool)?;
+
+        let set = conn.smembers("fun_with_flags")?;
+        Ok(set)
+    }
+
+    pub fn clean_all(pool: &DBConnection) -> Result<(), Error> {
+        // let mut conn = Self::create_conn(pool)?;
+        let flag_names = Self::all_flags_names(pool)?;
+
+        println!("{:?}", flag_names);
+        for flag_name in flag_names {
+            Self::clean(pool, &flag_name)?
+        }
+
+        Ok(())
+    }
+
+    pub fn clean(pool: &DBConnection, flag_name: &str) -> Result<(), Error> {
+        let mut conn = Self::create_conn(pool)?;
+
+        let key = flag_key_from_str(flag_name);
+
+        let _: () = redis::pipe()
+            .atomic()
+            .srem(NAMESPACE, flag_name)
+            .ignore()
+            .del(&key)
+            .ignore()
+            .query(&mut *conn)?;
+
+        Ok(())
+    }
+
     fn post_processing(original_flag: &FeatureFlag, output: &mut RawOptionalFeatureFlags) {
         output.set_flag_name(original_flag.name().to_string());
         output.update_flag_name();
@@ -98,10 +138,21 @@ impl Backend {
     pub fn backend_name() -> &'static str {
         "redis"
     }
+
+    pub fn create_conn(
+        pool: &DBConnection,
+    ) -> Result<r2d2::PooledConnection<redis::Client>, r2d2::Error> {
+        let pool = pool.pool.clone();
+        pool.get()
+    }
 }
 
 fn flag_key(flag: &FeatureFlag) -> String {
-    format!("{}:{}", NAMESPACE, flag.name())
+    flag_key_from_str(flag.name())
+}
+
+fn flag_key_from_str(flag_name: &str) -> String {
+    format!("{}:{}", NAMESPACE, flag_name)
 }
 
 impl redis::FromRedisValue for RawOptionalFeatureFlags {

@@ -1,14 +1,25 @@
+use serial_test::serial;
+
 #[cfg(feature = "postgres-backend")]
 #[macro_use]
 extern crate diesel_migrations;
 
+struct Person {
+    name: String,
+}
+
+impl fun_with_flags::Actor for Person {
+    fn feature_flag_id(&self) -> String {
+        format!("person-{}", self.name)
+    }
+}
+
 #[cfg(feature = "postgres-backend")]
-mod postgres {
+mod postgres_test_context {
     extern crate diesel;
 
     use diesel::connection::SimpleConnection;
     use diesel::RunQueryDsl;
-    use serial_test::serial;
 
     use diesel_migrations::MigrationConnection;
 
@@ -18,12 +29,12 @@ mod postgres {
 
     embed_migrations!();
 
-    struct TestContext {
+    pub struct TestContext {
         is_dropped: bool,
     }
 
     impl TestContext {
-        fn new() -> Self {
+        pub fn new() -> Self {
             println!("Set up resources");
             let conn = fun_with_flags::establish_connection_to_database(MAIN_DATABASE);
             Self::create_db(&conn);
@@ -68,85 +79,153 @@ mod postgres {
             }
         }
     }
+}
 
-    struct Person {
-        name: String,
-    }
 
-    impl fun_with_flags::Actor for Person {
-        fn feature_flag_id(&self) -> String {
-            format!("person-{}", self.name)
+#[cfg(feature = "redis-backend")]
+mod redis_test_context {
+    pub struct TestContext;
+
+    impl TestContext {
+        pub fn new() -> Self {
+            let db = fun_with_flags::establish_connection();
+
+            fun_with_flags::Backend::clean_all(&db).unwrap();
+
+            TestContext {}
         }
     }
 
-    #[test]
-    #[serial]
-    fn enable() {
-        let mut _ctx = TestContext::new();
+    impl Drop for TestContext {
+        fn drop(&mut self) {
+            let db = fun_with_flags::establish_connection();
 
-        let flag_name = "bool_flag";
-
-        assert_eq!(false, fun_with_flags::enabled(flag_name));
-        fun_with_flags::enable(flag_name).unwrap();
-        assert_eq!(true, fun_with_flags::enabled(flag_name));
-        fun_with_flags::disable(flag_name).unwrap();
-        assert_eq!(false, fun_with_flags::enabled(flag_name));
-    }
-
-    #[test]
-    #[serial]
-    fn enable_for() {
-        let mut _ctx = TestContext::new();
-
-        let flag_name = "actor_flag";
-
-        let john = Person {
-            name: String::from("john"),
-        };
-
-        assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
-        fun_with_flags::enable_for(flag_name, &john).unwrap();
-        assert_eq!(true, fun_with_flags::enabled_for(flag_name, &john));
-        fun_with_flags::disable_for(flag_name, &john).unwrap();
-        assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
-    }
-
-    #[test]
-    #[serial]
-    fn enable_chance() {
-        let mut _ctx = TestContext::new();
-
-        let flag_name = "times_of_flag";
-
-        assert_eq!(false, fun_with_flags::enabled(flag_name));
-        fun_with_flags::enable_percentage_of_time(flag_name, 0.50).unwrap();
-        // chance of getting 40 times false in a row for 50% is very small (0.000000000090949470177292823792%)
-        let result = (0..40)
-            .map(|_x| fun_with_flags::enabled(flag_name))
-            .any(|x| x);
-
-        assert_eq!(true, result);
-
-        fun_with_flags::disable_percentage_of_time(flag_name).unwrap();
-        let result = (0..40)
-            .map(|_x| fun_with_flags::enabled(flag_name))
-            .any(|x| x);
-        assert_eq!(false, result);
+            fun_with_flags::Backend::clean_all(&db).unwrap();
+        }
     }
 }
 
 #[cfg(feature = "redis-backend")]
-mod redis {
-    #[test]
-    fn enable_test() {
-        let flag_name = "bool_flag";
-        // let flag_name = "time_one";
+use redis_test_context::TestContext;
 
-        // assert_eq!(false, fun_with_flags::enabled(flag_name));
-        fun_with_flags::enable(flag_name).unwrap();
-        // assert_eq!(true, fun_with_flags::enabled(flag_name));
-        // fun_with_flags::disable(flag_name).unwrap();
-        // assert_eq!(true, fun_with_flags::enabled(flag_name));
-        // assert_eq!(true, fun_with_flags::enabled_for(flag_name, &"user_2"));
-    }
+#[cfg(feature = "postgres-backend")]
+use postgres_test_context::TestContext;
+
+#[test]
+#[serial]
+fn enable() {
+    let mut _ctx = TestContext::new();
+
+    let flag_name = "bool_flag";
+
+    assert_eq!(false, fun_with_flags::enabled(flag_name));
+    fun_with_flags::enable(flag_name).unwrap();
+    assert_eq!(true, fun_with_flags::enabled(flag_name));
+    fun_with_flags::disable(flag_name).unwrap();
+    assert_eq!(false, fun_with_flags::enabled(flag_name));
 }
+
+#[test]
+#[serial]
+fn enable_for() {
+    let mut _ctx = TestContext::new();
+
+    let flag_name = "actor_flag";
+
+    let john = Person {
+        name: String::from("john"),
+    };
+
+    assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
+    fun_with_flags::enable_for(flag_name, &john).unwrap();
+    assert_eq!(true, fun_with_flags::enabled_for(flag_name, &john));
+    fun_with_flags::disable_for(flag_name, &john).unwrap();
+    assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
+}
+
+#[test]
+#[serial]
+fn enable_chance() {
+    let mut _ctx = TestContext::new();
+
+    let flag_name = "times_of_flag";
+
+    assert_eq!(false, fun_with_flags::enabled(flag_name));
+    fun_with_flags::enable_percentage_of_time(flag_name, 0.50).unwrap();
+    // chance of getting 40 times false in a row for 50% is very small (0.000000000090949470177292823792%)
+    let result = (0..40)
+        .map(|_x| fun_with_flags::enabled(flag_name))
+        .any(|x| x);
+
+    assert_eq!(true, result);
+
+    fun_with_flags::disable_percentage_of_time(flag_name).unwrap();
+    let result = (0..40)
+        .map(|_x| fun_with_flags::enabled(flag_name))
+        .any(|x| x);
+    assert_eq!(false, result);
+}
+
+
+// #[cfg(feature = "redis-backend")]
+// mod redis {
+//     use super::Person;
+//     use serial_test::serial;
+
+//     struct TestContext;
+
+//     impl TestContext {
+//         fn new() -> Self {
+//             let db = fun_with_flags::establish_connection();
+
+//             fun_with_flags::Backend::clean_all(&db).unwrap();
+
+//             TestContext {}
+//         }
+//     }
+
+//     impl Drop for TestContext {
+//         fn drop(&mut self) {
+//             let db = fun_with_flags::establish_connection();
+
+//             fun_with_flags::Backend::clean_all(&db).unwrap();
+//         }
+//     }
+
+//     #[test]
+//     #[serial]
+//     fn enable() {
+//         let mut _ctx = TestContext::new();
+
+//         let flag_name = "bool_flag";
+//         // let flag_name = "time_one";
+
+//         assert_eq!(false, fun_with_flags::enabled(flag_name));
+//         fun_with_flags::enable(flag_name).unwrap();
+//         assert_eq!(true, fun_with_flags::enabled(flag_name));
+//         fun_with_flags::disable(flag_name).unwrap();
+//         assert_eq!(false, fun_with_flags::enabled(flag_name));
+
+//         // fun_with_flags::disable(flag_name).unwrap();
+//         // assert_eq!(true, fun_with_flags::enabled(flag_name));
+//         // assert_eq!(true, fun_with_flags::enabled_for(flag_name, &"user_2"));
+//     }
+
+
+//     #[test]
+//     fn enable_for() {
+//         let mut _ctx = TestContext::new();
+
+//         let flag_name = "actor_flag";
+
+//         let john = Person {
+//             name: String::from("john"),
+//         };
+
+//         assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
+//         fun_with_flags::enable_for(flag_name, &john).unwrap();
+//         assert_eq!(true, fun_with_flags::enabled_for(flag_name, &john));
+//         fun_with_flags::disable_for(flag_name, &john).unwrap();
+//         assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
+//     }
+// }
