@@ -7,7 +7,7 @@ defmodule FunWithFlagsRs.Application do
 
   def start(_type, _args) do
     children = [
-      FunWithFlagsRs.Repo
+      # FunWithFlagsRs.Repo
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

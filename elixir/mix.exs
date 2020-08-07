@@ -23,6 +23,7 @@ defmodule FunWithFlagsRs.MixProject do
   defp deps do
     [
       {:fun_with_flags, "~> 1.5.0"},
+      {:redix, "~> 0.9"},
       {:ecto_sql, "~> 3.0"},
       {:postgrex, ">= 0.0.0"}
     ]

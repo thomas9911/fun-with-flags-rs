@@ -5,9 +5,15 @@ cfg_if::cfg_if! {
         pub mod null;
         pub use null::{MockBackend as Backend, DBConnection, GetOutput, SetOutput, DB};
 
-    } else {
+    } else if #[cfg(feature = "redis-backend")]{
+        pub mod redis;
+        pub use self::redis::{Backend, DBConnection, GetOutput, SetOutput, DB};
+    } else if #[cfg(feature = "postgres-backend")] {
         pub mod postgres;
         pub use postgres::{Backend, DBConnection, GetOutput, SetOutput, DB};
+    } else {
+        pub mod null;
+        pub use null::{MockBackend as Backend, DBConnection, GetOutput, SetOutput, DB};
     }
 }
 

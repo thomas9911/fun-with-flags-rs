@@ -1,4 +1,5 @@
 #[macro_use]
+#[cfg(feature = "postgres-backend")]
 extern crate diesel;
 extern crate dotenv;
 
@@ -6,11 +7,18 @@ extern crate dotenv;
 use dotenv::dotenv;
 use std::env;
 
+#[cfg(feature = "postgres-backend")]
+#[allow(unused_imports)]
+use diesel::Connection;
+
 pub use models::FeatureFlag;
 pub use traits::Actor;
 pub mod backend;
 pub mod models;
+
+#[cfg(feature = "postgres-backend")]
 pub mod schema;
+
 pub mod traits;
 pub use backend::{Backend, DBConnection, SetOutput as Output};
 
@@ -22,9 +30,6 @@ pub fn establish_connection() -> DBConnection {
 }
 
 pub fn establish_connection_to_database(database_name: &str) -> DBConnection {
-    #[allow(unused_imports)]
-    use diesel::Connection;
-
     dotenv().unwrap();
     let database_url = env::var("DATABASE_ADDRESS").expect("DATABASE_URL must be set");
 
@@ -80,6 +85,7 @@ pub fn disable_for<T: Actor>(flag: &str, actor: &T) -> Output {
 
 pub fn enabled(flag: &str) -> bool {
     let conn = establish_connection();
+    println!("hi");
 
     if let Ok(x) = Backend::get(
         &conn,

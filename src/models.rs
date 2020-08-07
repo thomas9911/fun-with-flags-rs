@@ -1,11 +1,120 @@
+#[cfg(feature = "postgres-backend")]
 #[derive(Debug, FromSqlRow)]
 pub struct RawFeatureFlag {
-    pub id: i64,
     pub flag_name: String,
     pub gate_type: String,
     pub target: String,
     pub enabled: bool,
 }
+
+#[derive(Debug)]
+pub struct RawOptionalFeatureFlags {
+    pub flag_name: Option<String>,
+    pub data: Vec<RawOptionalFeatureFlag>,
+    pub name_set: bool,
+}
+
+impl RawOptionalFeatureFlags {
+    pub fn add(&mut self, flag: RawOptionalFeatureFlag) {
+        self.data.push(flag)
+    }
+
+    pub fn set_flag_name(&mut self, flag_name: String) {
+        self.flag_name = Some(flag_name)
+    }
+
+    pub fn update_flag_name(&mut self) {
+        for item in self.data.iter_mut() {
+            item.flag_name = self.flag_name.clone()
+        }
+        self.name_set = true;
+    }
+
+    pub fn find(self, flag: &FeatureFlag) -> Option<FeatureFlag> {
+        println!("models: {:?}", flag);
+        assert!(self.name_set);
+
+        self.data.into_iter().find_map(|x| {
+            let result = FeatureFlag::from(x);
+            if flag.same(&result) {
+                Some(result)
+            } else {
+                None
+            }
+        })
+    }
+}
+
+impl From<RawOptionalFeatureFlags> for Vec<FeatureFlag> {
+    fn from(flags: RawOptionalFeatureFlags) -> Vec<FeatureFlag> {
+        flags
+            .data
+            .into_iter()
+            .map(|x| FeatureFlag::from(x))
+            .collect()
+    }
+}
+
+impl Default for RawOptionalFeatureFlags {
+    fn default() -> Self {
+        RawOptionalFeatureFlags {
+            flag_name: None,
+            data: Vec::new(),
+            name_set: false,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct RawOptionalFeatureFlag {
+    pub flag_name: Option<String>,
+    pub gate_type: String,
+    pub target: String,
+    pub enabled: bool,
+}
+
+impl From<RawOptionalFeatureFlag> for FeatureFlag {
+    fn from(flags: RawOptionalFeatureFlag) -> FeatureFlag {
+        match flags.gate_type.as_ref() {
+            "boolean" => FeatureFlag::Boolean {
+                name: flags.flag_name.unwrap(),
+                enabled: flags.enabled,
+            },
+            "actor" => FeatureFlag::Actor {
+                name: flags.flag_name.unwrap(),
+                target: flags.target,
+                enabled: flags.enabled,
+            },
+            "group" => FeatureFlag::Group {
+                name: flags.flag_name.unwrap(),
+                target: flags.target,
+                enabled: flags.enabled,
+            },
+            "time" => FeatureFlag::Time {
+                name: flags.flag_name.unwrap(),
+                target: flags.target.parse().expect("db contains invalid data"),
+                enabled: flags.enabled,
+            },
+            "actors" => FeatureFlag::Percentage {
+                name: flags.flag_name.unwrap(),
+                target: flags.target.parse().expect("db contains invalid data"),
+                enabled: flags.enabled,
+            },
+            _ => panic!("this gate is not supported"),
+        }
+    }
+}
+
+// impl Default for RawOptionalFeatureFlag{
+//     fn new() -> Self {
+//         RawOptionalFeatureFlag{
+//             flag_name: None,
+//             gate_type: None,
+//             target: None,
+//             enabled: None,
+//         }
+//     }
+// }
 
 #[derive(Debug)]
 pub enum FeatureFlag {
@@ -45,6 +154,66 @@ impl FeatureFlag {
             Group { enabled, .. } => enabled,
             Time { enabled, .. } => enabled,
             Percentage { enabled, .. } => enabled,
+        }
+    }
+
+    pub fn name<'a>(&'a self) -> &'a str {
+        use FeatureFlag::*;
+
+        match self {
+            Boolean { name, .. } => name,
+            Actor { name, .. } => name,
+            Group { name, .. } => name,
+            Time { name, .. } => name,
+            Percentage { name, .. } => name,
+        }
+    }
+
+    pub fn same(&self, other: &FeatureFlag) -> bool {
+        use FeatureFlag::*;
+
+        match self {
+            Boolean { name, .. } => match other {
+                &Boolean {
+                    name: ref other_name,
+                    ..
+                } => other_name == name,
+                _ => false,
+            },
+
+            Time { name, .. } => match other {
+                &Time {
+                    name: ref other_name,
+                    ..
+                } => other_name == name,
+                _ => false,
+            },
+
+            Percentage { name, .. } => match other {
+                &Percentage {
+                    name: ref other_name,
+                    ..
+                } => other_name == name,
+                _ => false,
+            },
+
+            Actor { name, target, .. } => match other {
+                &Actor {
+                    name: ref stored_name,
+                    target: ref stored_target,
+                    ..
+                } => stored_name == name && stored_target == target,
+                _ => false,
+            },
+
+            Group { name, target, .. } => match other {
+                &Group {
+                    name: ref stored_name,
+                    target: ref stored_target,
+                    ..
+                } => stored_name == name && stored_target == target,
+                _ => false,
+            },
         }
     }
 }
