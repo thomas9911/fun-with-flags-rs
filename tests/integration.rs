@@ -81,7 +81,6 @@ mod postgres_test_context {
     }
 }
 
-
 #[cfg(feature = "redis-backend")]
 mod redis_test_context {
     pub struct TestContext;
@@ -182,7 +181,6 @@ fn enable_chance() {
     assert_eq!(false, result);
 }
 
-
 // #[cfg(feature = "redis-backend")]
 // mod redis {
 //     use super::Person;
@@ -226,7 +224,6 @@ fn enable_chance() {
 //         // assert_eq!(true, fun_with_flags::enabled(flag_name));
 //         // assert_eq!(true, fun_with_flags::enabled_for(flag_name, &"user_2"));
 //     }
-
 
 //     #[test]
 //     fn enable_for() {
