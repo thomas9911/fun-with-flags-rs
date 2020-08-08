@@ -151,11 +151,18 @@ fn enable_for() {
         name: String::from("john"),
     };
 
+    let pete = Person {
+        name: String::from("pete"),
+    };
+
     assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
+    assert_eq!(false, fun_with_flags::enabled_for(flag_name, &pete));
     fun_with_flags::enable_for(flag_name, &john).unwrap();
     assert_eq!(true, fun_with_flags::enabled_for(flag_name, &john));
+    assert_eq!(false, fun_with_flags::enabled_for(flag_name, &pete));
     fun_with_flags::disable_for(flag_name, &john).unwrap();
     assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
+    assert_eq!(false, fun_with_flags::enabled_for(flag_name, &pete));
 }
 
 #[test]
@@ -181,64 +188,30 @@ fn enable_chance() {
     assert_eq!(false, result);
 }
 
-// #[cfg(feature = "redis-backend")]
-// mod redis {
-//     use super::Person;
-//     use serial_test::serial;
+#[test]
+#[serial]
+fn enable_percentage_of_actors() {
+    let mut _ctx = TestContext::new();
 
-//     struct TestContext;
+    let flag_name = "actor_percentage_flag";
 
-//     impl TestContext {
-//         fn new() -> Self {
-//             let db = fun_with_flags::establish_connection();
+    let john = Person {
+        name: String::from("john"),
+    };
 
-//             fun_with_flags::Backend::clean_all(&db).unwrap();
+    let pete = Person {
+        name: String::from("pete"),
+    };
 
-//             TestContext {}
-//         }
-//     }
+    assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
+    assert_eq!(false, fun_with_flags::enabled_for(flag_name, &pete));
 
-//     impl Drop for TestContext {
-//         fn drop(&mut self) {
-//             let db = fun_with_flags::establish_connection();
-
-//             fun_with_flags::Backend::clean_all(&db).unwrap();
-//         }
-//     }
-
-//     #[test]
-//     #[serial]
-//     fn enable() {
-//         let mut _ctx = TestContext::new();
-
-//         let flag_name = "bool_flag";
-//         // let flag_name = "time_one";
-
-//         assert_eq!(false, fun_with_flags::enabled(flag_name));
-//         fun_with_flags::enable(flag_name).unwrap();
-//         assert_eq!(true, fun_with_flags::enabled(flag_name));
-//         fun_with_flags::disable(flag_name).unwrap();
-//         assert_eq!(false, fun_with_flags::enabled(flag_name));
-
-//         // fun_with_flags::disable(flag_name).unwrap();
-//         // assert_eq!(true, fun_with_flags::enabled(flag_name));
-//         // assert_eq!(true, fun_with_flags::enabled_for(flag_name, &"user_2"));
-//     }
-
-//     #[test]
-//     fn enable_for() {
-//         let mut _ctx = TestContext::new();
-
-//         let flag_name = "actor_flag";
-
-//         let john = Person {
-//             name: String::from("john"),
-//         };
-
-//         assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
-//         fun_with_flags::enable_for(flag_name, &john).unwrap();
-//         assert_eq!(true, fun_with_flags::enabled_for(flag_name, &john));
-//         fun_with_flags::disable_for(flag_name, &john).unwrap();
-//         assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
-//     }
-// }
+    fun_with_flags::enable_percentage_of_actors(flag_name, 0.1).unwrap();
+    // score for john is about 0.2
+    // score for pete is about 0.02
+    assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
+    assert_eq!(true, fun_with_flags::enabled_for(flag_name, &pete));
+    fun_with_flags::disable_percentage_of_actors(flag_name).unwrap();
+    assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
+    assert_eq!(false, fun_with_flags::enabled_for(flag_name, &pete));
+}

@@ -85,7 +85,6 @@ pub fn disable_for<T: Actor>(flag: &str, actor: &T) -> Output {
 
 pub fn enabled(flag: &str) -> bool {
     let conn = establish_connection();
-    println!("hi");
 
     if let Ok(x) = Backend::get(
         &conn,
@@ -122,7 +121,19 @@ pub fn disabled(flag: &str) -> bool {
 pub fn enabled_for<T: Actor>(flag: &str, actor: &T) -> bool {
     let conn = establish_connection();
 
-    match Backend::get(
+    // match Backend::get(
+    //     &conn,
+    //     FeatureFlag::Actor {
+    //         name: flag.to_string(),
+    //         target: actor.feature_flag_id(),
+    //         enabled: true,
+    //     },
+    // ) {
+    //     Ok(x) => *x.enabled(),
+    //     Err(_) => false,
+    // }
+
+    if let Ok(x) = Backend::get(
         &conn,
         FeatureFlag::Actor {
             name: flag.to_string(),
@@ -130,9 +141,26 @@ pub fn enabled_for<T: Actor>(flag: &str, actor: &T) -> bool {
             enabled: true,
         },
     ) {
-        Ok(x) => *x.enabled(),
-        Err(_) => false,
-    }
+        return *x.enabled();
+    };
+
+    if let Ok(FeatureFlag::Percentage {
+        target,
+        enabled: true,
+        ..
+    }) = Backend::get(
+        &conn,
+        FeatureFlag::Percentage {
+            name: flag.to_string(),
+            enabled: true,
+            target: 0.0,
+        },
+    ) {
+        // return target > generate_0_1();
+        return target > score(flag, actor)
+    };
+
+    false
 }
 
 pub fn disabled_for<T: Actor>(flag: &str, actor: &T) -> bool {
@@ -187,7 +215,7 @@ pub fn disable_percentage_of_actors(flag: &str) -> Output {
     )
 }
 
-pub fn score<T: Actor>(flag: &str, actor: T) -> f64 {
+pub fn score<T: Actor>(flag: &str, actor: &T) -> f64 {
     let blob = format!("{}{}", actor.feature_flag_id(), flag);
     hash(&blob)
 }
