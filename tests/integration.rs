@@ -206,9 +206,9 @@ fn enable_percentage_of_actors() {
     assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
     assert_eq!(false, fun_with_flags::enabled_for(flag_name, &pete));
 
-    fun_with_flags::enable_percentage_of_actors(flag_name, 0.1).unwrap();
-    // score for john is about 0.2
-    // score for pete is about 0.02
+    fun_with_flags::enable_percentage_of_actors(flag_name, 0.4).unwrap();
+    // score for john is about 0.44
+    // score for pete is about 0.34
     assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
     assert_eq!(true, fun_with_flags::enabled_for(flag_name, &pete));
     fun_with_flags::disable_percentage_of_actors(flag_name).unwrap();

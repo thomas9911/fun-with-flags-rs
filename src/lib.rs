@@ -121,18 +121,6 @@ pub fn disabled(flag: &str) -> bool {
 pub fn enabled_for<T: Actor>(flag: &str, actor: &T) -> bool {
     let conn = establish_connection();
 
-    // match Backend::get(
-    //     &conn,
-    //     FeatureFlag::Actor {
-    //         name: flag.to_string(),
-    //         target: actor.feature_flag_id(),
-    //         enabled: true,
-    //     },
-    // ) {
-    //     Ok(x) => *x.enabled(),
-    //     Err(_) => false,
-    // }
-
     if let Ok(x) = Backend::get(
         &conn,
         FeatureFlag::Actor {
@@ -156,8 +144,7 @@ pub fn enabled_for<T: Actor>(flag: &str, actor: &T) -> bool {
             target: 0.0,
         },
     ) {
-        // return target > generate_0_1();
-        return target > score(flag, actor)
+        return target > score(flag, actor);
     };
 
     false
@@ -224,7 +211,10 @@ fn hash(input: &str) -> f64 {
     use sha2::{Digest, Sha256};
 
     let result = Sha256::digest(input.as_bytes());
-    let num = u16::from_ne_bytes([result[0], result[1]]);
+    let first_byte = result[0] as u16;
+    let second_byte = result[1] as u16;
+
+    let num = first_byte.wrapping_shl(8) + second_byte;
     num as f64 / 65_536f64
 }
 
@@ -239,6 +229,40 @@ fn generate_0_1() -> f64 {
 mod tests {
     use crate::{enable, enable_for, Backend, FeatureFlag};
     use serial_test::serial;
+
+    mod scores {
+        // tested to work the same as the elixir implementation
+        use crate::score;
+
+        macro_rules! assert_near_equal {
+            ($left:expr, $right:expr) => {
+                if !float_cmp::approx_eq!(f64, $left, $right) {
+                    panic!(
+                        r#"assertion failed: `(left == right)`
+    left: `{:?}`,
+    right: `{:?}`"#,
+                        $left, $right
+                    )
+                }
+            };
+        }
+
+        #[test]
+        fn test_1() {
+            let expected: f64 = 0.6754302978515625;
+            let score = score("testing", &"test1234");
+
+            assert_near_equal!(expected, score)
+        }
+
+        #[test]
+        fn test_2() {
+            let expected: f64 = 0.3940582275390625;
+            let score = score("testing", &"123456789");
+
+            assert_near_equal!(expected, score)
+        }
+    }
 
     #[test]
     #[serial]

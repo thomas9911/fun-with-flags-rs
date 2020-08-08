@@ -22,3 +22,37 @@ defimpl FunWithFlags.Actor, for: BitString do
   end
 end
 
+
+
+defmodule FunWithFlagsRs.HashTest do
+  @moduledoc false
+
+  alias FunWithFlags.Actor
+
+  # Combine an actor id and a flag name to get
+  # a score. The flag name must be included to
+  # ensure that the same actors get different
+  # scores for different flags, but with
+  # deterministic and predictable results.
+  #
+  @spec score(term, atom) :: float
+  def score(actor, flag_name) do
+    blob = Actor.id(actor) <> to_string(flag_name)
+    _actor_score(blob)
+  end
+
+  # first 16 bits:
+  # 2 ** 16 = 65_536
+  #
+  # %_ratio : 1.0 = 16_bits : 65_536
+  #
+  defp _actor_score(string) do
+    IO.puts(string)
+    hash = :crypto.hash(:sha256, string) |> IO.inspect()
+    # IO.inspect({hash[0], hash[1]})
+    <<score :: size(16), _rest :: binary>> = hash
+    IO.inspect(score)
+    score / 65_536
+  end
+
+end
