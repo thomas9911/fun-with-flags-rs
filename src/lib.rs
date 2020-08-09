@@ -33,13 +33,15 @@
 //! }
 //! ```
 //! 
+//! # Backends
+//! 
 //! Currently supports two backends Postgres and Redis.
 //! 
 //! For redis add: `features = ["redis-backend"]` to Cargo.toml
 //! 
 //! For Postgres add: `features = ["postgres-backend"]` to Cargo.toml
 //! 
-//! For Postgres you also need to add the fun_with_flags_toggles table to your database. The migration can be found in [migrations/00000000000001_create_feature_flags_table/up.sql](../blob/master/migrations/00000000000001_create_feature_flags_table/up.sql). 
+//! For Postgres you also need to add the fun_with_flags_toggles table to your database. The migration can be found in [migrations/00000000000001_create_feature_flags_table/up.sql](../master/migrations/00000000000001_create_feature_flags_table/up.sql). 
 //! 
 //! For more explanation look at the fun-with-flags elixir project.
 //! 
