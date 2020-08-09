@@ -98,7 +98,7 @@ impl Backend {
     pub fn all_flags_names(pool: &DBConnection) -> Result<HashSet<String>, Error> {
         let mut conn = Self::create_conn(pool)?;
 
-        let set = conn.smembers("fun_with_flags")?;
+        let set = conn.smembers(NAMESPACE)?;
         Ok(set)
     }
 
@@ -106,7 +106,6 @@ impl Backend {
         // let mut conn = Self::create_conn(pool)?;
         let flag_names = Self::all_flags_names(pool)?;
 
-        println!("{:?}", flag_names);
         for flag_name in flag_names {
             Self::clean(pool, &flag_name)?
         }
@@ -202,6 +201,18 @@ impl redis::FromRedisValue for RawOptionalFeatureFlags {
                             }
                         }
 
+                        x if x.starts_with("group") => {
+                            let target = x.rsplit("/").next().unwrap();
+                            let enabled: bool = value.parse().unwrap();
+
+                            RawOptionalFeatureFlag {
+                                target: target.to_string(),
+                                gate_type: "group".to_string(),
+                                enabled,
+                                flag_name: None,
+                            }
+                        }
+
                         _ => unimplemented!(),
                     };
 
@@ -221,16 +232,20 @@ impl FeatureFlag {
     pub fn to_redis_value(&self) -> (String, String) {
         use FeatureFlag::*;
 
-        match self {
+        let x = match self {
             Boolean { enabled, .. } => ("boolean".to_string(), enabled.to_string()),
             Actor {
                 target, enabled, ..
             } => (format!("actor/{}", target), enabled.to_string()),
             Group {
                 target, enabled, ..
-            } => (format!("group/{}", target), enabled.to_string()),
+            } => (
+                format!("group/{}", target.get_first_unsafe()),
+                enabled.to_string(),
+            ),
             Time { target, .. } => ("percentage".to_string(), format!("time/{}", target)),
             Percentage { target, .. } => ("percentage".to_string(), format!("actors/{}", target)),
-        }
+        };
+        x
     }
 }

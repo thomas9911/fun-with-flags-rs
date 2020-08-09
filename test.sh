@@ -1,0 +1,1 @@
+./test_unit.sh && ./test_redis.sh && ./test_postgres.sh 

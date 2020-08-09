@@ -18,6 +18,8 @@ jobs:
       run: docker-compose up -d
     - name: Build
       run: cargo build --verbose
+    - name: Run tests (unit)
+      run: bash ./test_unit.sh
     - name: Run tests (postgres)
       run: bash ./test_postgres.sh
     - name: Run tests (redis)

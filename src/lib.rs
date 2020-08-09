@@ -3,7 +3,6 @@
 extern crate diesel;
 extern crate dotenv;
 
-// use diesel::prelude::*;
 use dotenv::dotenv;
 use std::env;
 
@@ -12,7 +11,7 @@ use std::env;
 use diesel::Connection;
 
 pub use models::FeatureFlag;
-pub use traits::Actor;
+pub use traits::{Actor, Group};
 pub mod backend;
 pub mod models;
 
@@ -118,7 +117,7 @@ pub fn disabled(flag: &str) -> bool {
     !enabled(flag)
 }
 
-pub fn enabled_for<T: Actor>(flag: &str, actor: &T) -> bool {
+pub fn enabled_for<T: Actor + Group>(flag: &str, actor: &T) -> bool {
     let conn = establish_connection();
 
     if let Ok(x) = Backend::get(
@@ -130,6 +129,21 @@ pub fn enabled_for<T: Actor>(flag: &str, actor: &T) -> bool {
         },
     ) {
         return *x.enabled();
+    };
+
+    if let Ok(FeatureFlag::Group {
+        target,
+        enabled: true,
+        ..
+    }) = Backend::get(
+        &conn,
+        FeatureFlag::Group {
+            name: flag.to_string(),
+            target: models::GroupSet::default(),
+            enabled: true,
+        },
+    ) {
+        return target.check(actor);
     };
 
     if let Ok(FeatureFlag::Percentage {
@@ -150,7 +164,7 @@ pub fn enabled_for<T: Actor>(flag: &str, actor: &T) -> bool {
     false
 }
 
-pub fn disabled_for<T: Actor>(flag: &str, actor: &T) -> bool {
+pub fn disabled_for<T: Actor + Group>(flag: &str, actor: &T) -> bool {
     !enabled_for(flag, actor)
 }
 
@@ -197,6 +211,30 @@ pub fn disable_percentage_of_actors(flag: &str) -> Output {
         FeatureFlag::Percentage {
             name: flag.to_string(),
             target: 0.0,
+            enabled: false,
+        },
+    )
+}
+
+pub fn enable_for_group(flag: &str, group_name: &str) -> Output {
+    let conn = establish_connection();
+    Backend::set(
+        &conn,
+        FeatureFlag::Group {
+            name: flag.to_string(),
+            target: models::GroupSet::new(group_name.to_string()),
+            enabled: true,
+        },
+    )
+}
+
+pub fn disable_for_group(flag: &str, group_name: &str) -> Output {
+    let conn = establish_connection();
+    Backend::set(
+        &conn,
+        FeatureFlag::Group {
+            name: flag.to_string(),
+            target: models::GroupSet::new(group_name.to_string()),
             enabled: false,
         },
     )

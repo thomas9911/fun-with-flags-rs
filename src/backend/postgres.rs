@@ -1,4 +1,4 @@
-use crate::models::FeatureFlag;
+use crate::models::{FeatureFlag, GroupSet};
 use crate::schema::fun_with_flags_toggles;
 use diesel::prelude::*;
 use diesel::sql_types::Bool;
@@ -86,7 +86,7 @@ impl Queryable<fun_with_flags_toggles::SqlType, DB> for FeatureFlag {
             },
             "group" => FeatureFlag::Group {
                 name: row.1,
-                target: row.3,
+                target: GroupSet::new(row.3),
                 enabled: row.4,
             },
             "percentage" if row.3.starts_with("time/") => FeatureFlag::Time {
@@ -132,7 +132,7 @@ impl FeatureFlag {
             } => NewFeatureFlag {
                 flag_name: name,
                 gate_type: "group",
-                target: target.to_string(),
+                target: target.to_optional_string().unwrap_or("").to_string(),
                 enabled: enabled,
             },
             Time {
@@ -167,7 +167,7 @@ impl FeatureFlag {
 
         let insertable = self.to_insertable();
         match self {
-            Time { .. } | Percentage { .. } => Box::new(
+            Time { .. } | Percentage { .. } | Group { .. } => Box::new(
                 flag_name
                     .eq(insertable.flag_name)
                     .and(gate_type.eq(insertable.gate_type)),

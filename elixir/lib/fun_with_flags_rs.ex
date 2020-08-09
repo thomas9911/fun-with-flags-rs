@@ -13,6 +13,11 @@ defmodule FunWithFlagsRs do
     FunWithFlags.enable(:group_one, for_group: "group_1")
     FunWithFlags.enable(:time_one, for_percentage_of: {:time, 0.05})
     FunWithFlags.enable(:actor_percentage_one, for_percentage_of: {:actors, 0.60})
+  
+    FunWithFlags.enable(:mixed)
+    FunWithFlags.enable(:mixed, for_actor: "user_1")
+    FunWithFlags.enable(:mixed, for_percentage_of: {:time, 0.05})
+  
   end
 end
 

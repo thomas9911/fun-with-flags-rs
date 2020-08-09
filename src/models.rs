@@ -1,3 +1,6 @@
+use crate::Group;
+use std::collections::HashSet;
+
 #[cfg(feature = "postgres-backend")]
 #[derive(Debug, FromSqlRow)]
 pub struct RawFeatureFlag {
@@ -31,7 +34,6 @@ impl RawOptionalFeatureFlags {
     }
 
     pub fn find(self, flag: &FeatureFlag) -> Option<FeatureFlag> {
-        println!("models: {:?}", flag);
         assert!(self.name_set);
 
         self.data.into_iter().find_map(|x| {
@@ -87,7 +89,7 @@ impl From<RawOptionalFeatureFlag> for FeatureFlag {
             },
             "group" => FeatureFlag::Group {
                 name: flags.flag_name.unwrap(),
-                target: flags.target,
+                target: GroupSet::new(flags.target),
                 enabled: flags.enabled,
             },
             "time" => FeatureFlag::Time {
@@ -129,7 +131,7 @@ pub enum FeatureFlag {
     },
     Group {
         name: String,
-        target: String,
+        target: GroupSet,
         enabled: bool,
     },
     Time {
@@ -142,6 +144,60 @@ pub enum FeatureFlag {
         target: f64,
         enabled: bool,
     },
+}
+
+#[derive(Debug, PartialEq)]
+pub struct GroupSet {
+    data: HashSet<String>,
+    length: usize,
+}
+
+impl GroupSet {
+    pub fn new(one: String) -> Self {
+        let mut set = HashSet::new();
+        set.insert(one);
+        GroupSet {
+            data: set,
+            length: 1,
+        }
+    }
+
+    pub fn check<T: Group>(&self, to_check: &T) -> bool {
+        self.data.iter().any(|x| to_check.is_in_group(x))
+    }
+
+    pub fn to_optional_string(&self) -> Option<&str> {
+        if self.length == 1 {
+            let mut iter = self.data.iter();
+            iter.next().map(|x| (*x).as_ref())
+        } else {
+            None
+        }
+    }
+
+    pub fn get_first_unsafe(&self) -> &str {
+        self.to_optional_string()
+            .expect("setting flag in redis can only be done with one group at a time")
+    }
+}
+
+impl Default for GroupSet {
+    fn default() -> Self {
+        GroupSet {
+            data: HashSet::new(),
+            length: 0,
+        }
+    }
+}
+
+impl From<HashSet<String>> for GroupSet {
+    fn from(input: HashSet<String>) -> GroupSet {
+        let length = input.len();
+        GroupSet {
+            data: input,
+            length,
+        }
+    }
 }
 
 impl FeatureFlag {
@@ -206,12 +262,11 @@ impl FeatureFlag {
                 _ => false,
             },
 
-            Group { name, target, .. } => match other {
+            Group { name, .. } => match other {
                 &Group {
                     name: ref stored_name,
-                    target: ref stored_target,
                     ..
-                } => stored_name == name && stored_target == target,
+                } => stored_name == name,
                 _ => false,
             },
         }

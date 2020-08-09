@@ -10,3 +10,9 @@ where
         format!("{}", self.as_ref())
     }
 }
+
+pub trait Group {
+    fn is_in_group(&self, _group_name: &str) -> bool {
+        false
+    }
+}
