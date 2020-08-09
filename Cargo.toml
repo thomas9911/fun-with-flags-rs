@@ -3,6 +3,7 @@ name = "fun-with-flags"
 version = "0.1.0"
 authors = ["Thomas <thomastimmer11@hotmail.com>"]
 edition = "2018"
+license = "Unlicense"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
