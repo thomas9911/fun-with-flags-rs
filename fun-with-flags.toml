@@ -1,0 +1,10 @@
+# example config and also used for config parsing test
+
+[general]
+backend = "redis"
+
+[redis]
+url = "redis://localhost"
+
+[postgres]
+url = "postgres://username:password@localhost"

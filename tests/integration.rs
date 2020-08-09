@@ -49,7 +49,7 @@ mod postgres_test_context {
             let conn = fun_with_flags::establish_connection_to_database(MAIN_DATABASE);
             Self::create_db(&conn);
 
-            let conn = fun_with_flags::establish_connection();
+            let conn = fun_with_flags::establish_connection().unwrap();
 
             Self::migrate(&conn);
             println!("Set up resources, done");
@@ -97,7 +97,7 @@ mod redis_test_context {
 
     impl TestContext {
         pub fn new() -> Self {
-            let db = fun_with_flags::establish_connection();
+            let db = fun_with_flags::establish_connection().unwrap();
 
             fun_with_flags::Backend::clean_all(&db).unwrap();
 
@@ -107,7 +107,7 @@ mod redis_test_context {
 
     impl Drop for TestContext {
         fn drop(&mut self) {
-            let db = fun_with_flags::establish_connection();
+            let db = fun_with_flags::establish_connection().unwrap();
 
             fun_with_flags::Backend::clean_all(&db).unwrap();
         }

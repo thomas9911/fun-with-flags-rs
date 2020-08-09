@@ -16,6 +16,9 @@ rand = "0.7.3"
 mockall = "0.7.2"
 cfg-if = "0.1.10"
 lazy_static = "1.4.0"
+config = {version = "0.10.1", features = ["toml"], default-features = false}
+serde = "1.0"
+serde_derive = "1.0"
 r2d2 = {version = "0.8.9", optional = true}
 redis = {version = "0.17.0", features = ["r2d2"], optional = true}
 

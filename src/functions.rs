@@ -2,29 +2,42 @@
 #[allow(unused_imports)]
 use diesel::Connection;
 
+use crate::config::{fetch_config, ConfigError};
 use crate::models::GroupSet;
 use crate::{Actor, Backend, DBConnection, FeatureFlag, Group, Output};
 
-use dotenv::dotenv;
-use std::env;
+pub fn establish_connection() -> Result<DBConnection, ConfigError> {
+    let config = fetch_config().expect("database config is not correctly set");
 
-pub fn establish_connection() -> DBConnection {
-    dotenv().ok();
-
-    let database_name = env::var("DATABASE_NAME").expect("DATABASE_NAME must be set");
-    establish_connection_to_database(&database_name)
+    // if let Some((_address, name)) = config.parts() {
+    //     establish_connection_to_database(&name)
+    // } else {
+    //     let url = config.to_url().unwrap();
+    //     DBConnection::establish(&url).expect(&format!("Error connecting to {}", url))
+    // }
+    let url = config.to_url().ok_or(ConfigError::Message(
+        "database config can not find correct url".into(),
+    ))?;
+    DBConnection::establish(&url).or(Err(ConfigError::Message(format!(
+        "Error connecting to {}",
+        url
+    ))))
 }
 
+/// only used for debug purposes
 pub fn establish_connection_to_database(database_name: &str) -> DBConnection {
-    dotenv().ok();
-    let database_url = env::var("DATABASE_ADDRESS").expect("DATABASE_URL must be set");
+    let config = fetch_config().unwrap();
 
-    DBConnection::establish(&format!("{}/{}", database_url, database_name))
-        .expect(&format!("Error connecting to {}", database_url))
+    if let Some((database_url, _name)) = config.parts() {
+        DBConnection::establish(&format!("{}/{}", database_url, database_name))
+            .expect(&format!("Error connecting to {}", database_url))
+    } else {
+        panic!("DATABASE_URL must be set")
+    }
 }
 
 pub fn enable(flag: &str) -> Output {
-    let conn = establish_connection();
+    let conn = establish_connection().unwrap();
     Backend::set(
         &conn,
         FeatureFlag::Boolean {
@@ -35,7 +48,7 @@ pub fn enable(flag: &str) -> Output {
 }
 
 pub fn enable_for<T: Actor>(flag: &str, actor: &T) -> Output {
-    let conn = establish_connection();
+    let conn = establish_connection().unwrap();
     Backend::set(
         &conn,
         FeatureFlag::Actor {
@@ -47,7 +60,7 @@ pub fn enable_for<T: Actor>(flag: &str, actor: &T) -> Output {
 }
 
 pub fn disable(flag: &str) -> Output {
-    let conn = establish_connection();
+    let conn = establish_connection().unwrap();
     Backend::set(
         &conn,
         FeatureFlag::Boolean {
@@ -58,7 +71,7 @@ pub fn disable(flag: &str) -> Output {
 }
 
 pub fn disable_for<T: Actor>(flag: &str, actor: &T) -> Output {
-    let conn = establish_connection();
+    let conn = establish_connection().unwrap();
     Backend::set(
         &conn,
         FeatureFlag::Actor {
@@ -70,7 +83,7 @@ pub fn disable_for<T: Actor>(flag: &str, actor: &T) -> Output {
 }
 
 pub fn enabled(flag: &str) -> bool {
-    let conn = establish_connection();
+    let conn = establish_connection().unwrap();
 
     if let Ok(x) = Backend::get(
         &conn,
@@ -105,7 +118,7 @@ pub fn disabled(flag: &str) -> bool {
 }
 
 pub fn enabled_for<T: Actor + Group>(flag: &str, actor: &T) -> bool {
-    let conn = establish_connection();
+    let conn = establish_connection().unwrap();
 
     if let Ok(x) = Backend::get(
         &conn,
@@ -156,7 +169,7 @@ pub fn disabled_for<T: Actor + Group>(flag: &str, actor: &T) -> bool {
 }
 
 pub fn enable_percentage_of_time(flag: &str, percentage: f64) -> Output {
-    let conn = establish_connection();
+    let conn = establish_connection().unwrap();
     Backend::set(
         &conn,
         FeatureFlag::Time {
@@ -168,7 +181,7 @@ pub fn enable_percentage_of_time(flag: &str, percentage: f64) -> Output {
 }
 
 pub fn disable_percentage_of_time(flag: &str) -> Output {
-    let conn = establish_connection();
+    let conn = establish_connection().unwrap();
     Backend::set(
         &conn,
         FeatureFlag::Time {
@@ -180,7 +193,7 @@ pub fn disable_percentage_of_time(flag: &str) -> Output {
 }
 
 pub fn enable_percentage_of_actors(flag: &str, percentage: f64) -> Output {
-    let conn = establish_connection();
+    let conn = establish_connection().unwrap();
     Backend::set(
         &conn,
         FeatureFlag::Percentage {
@@ -192,7 +205,7 @@ pub fn enable_percentage_of_actors(flag: &str, percentage: f64) -> Output {
 }
 
 pub fn disable_percentage_of_actors(flag: &str) -> Output {
-    let conn = establish_connection();
+    let conn = establish_connection().unwrap();
     Backend::set(
         &conn,
         FeatureFlag::Percentage {
@@ -204,7 +217,7 @@ pub fn disable_percentage_of_actors(flag: &str) -> Output {
 }
 
 pub fn enable_for_group(flag: &str, group_name: &str) -> Output {
-    let conn = establish_connection();
+    let conn = establish_connection().unwrap();
     Backend::set(
         &conn,
         FeatureFlag::Group {
@@ -216,7 +229,7 @@ pub fn enable_for_group(flag: &str, group_name: &str) -> Output {
 }
 
 pub fn disable_for_group(flag: &str, group_name: &str) -> Output {
-    let conn = establish_connection();
+    let conn = establish_connection().unwrap();
     Backend::set(
         &conn,
         FeatureFlag::Group {
