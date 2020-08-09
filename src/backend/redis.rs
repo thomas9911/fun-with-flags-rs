@@ -47,8 +47,6 @@ impl From<redis::RedisError> for Error {
 
 impl Connection {
     pub fn establish(url: &str) -> Result<Connection, Error> {
-        // Ok(Self {})
-        // let manager = r2d2_foodb::FooConnectionManager::new("localhost:1234");
         let manager = redis::Client::open(url)?;
         let pool = r2d2::Pool::builder().max_size(15).build(manager)?;
         Ok(Connection { pool })
@@ -57,9 +55,6 @@ impl Connection {
 
 impl Backend {
     pub fn set(pool: &DBConnection, flag: FeatureFlag) -> SetOutput {
-        // let new_pool = pool.pool.clone();
-        // let mut conn = new_pool.get().unwrap();
-
         let mut conn = Self::create_conn(pool).unwrap();
 
         let (k, v) = flag.to_redis_value();
@@ -80,9 +75,6 @@ impl Backend {
     }
 
     pub fn get(pool: &DBConnection, flag: FeatureFlag) -> GetOutput {
-        // let pool = pool.pool.clone();
-        // let mut conn = pool.get().unwrap();
-
         let mut conn = Self::create_conn(pool).unwrap();
 
         let mut map: RawOptionalFeatureFlags = conn.hgetall(flag_key(&flag)).expect("handle error");
@@ -103,7 +95,6 @@ impl Backend {
     }
 
     pub fn clean_all(pool: &DBConnection) -> Result<(), Error> {
-        // let mut conn = Self::create_conn(pool)?;
         let flag_names = Self::all_flags_names(pool)?;
 
         for flag_name in flag_names {

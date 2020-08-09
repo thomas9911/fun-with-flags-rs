@@ -18,6 +18,7 @@ impl fun_with_flags::Group for Person {
     fn is_in_group(&self, group_name: &str) -> bool {
         match group_name {
             "test" => true,
+            "johns-group" => self.name == "john",
             _ => false,
         }
     }
@@ -246,6 +247,31 @@ fn enable_for_group() {
     assert_eq!(true, fun_with_flags::enabled_for(flag_name, &john));
     assert_eq!(true, fun_with_flags::enabled_for(flag_name, &pete));
     fun_with_flags::disable_for_group(flag_name, "test").unwrap();
+    assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
+    assert_eq!(false, fun_with_flags::enabled_for(flag_name, &pete));
+}
+
+#[test]
+#[serial]
+fn enable_for_group_specific() {
+    let mut _ctx = TestContext::new();
+
+    let flag_name = "group2_flag";
+
+    let john = Person {
+        name: String::from("john"),
+    };
+
+    let pete = Person {
+        name: String::from("pete"),
+    };
+
+    assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
+    assert_eq!(false, fun_with_flags::enabled_for(flag_name, &pete));
+    fun_with_flags::enable_for_group(flag_name, "johns-group").unwrap();
+    assert_eq!(true, fun_with_flags::enabled_for(flag_name, &john));
+    assert_eq!(false, fun_with_flags::enabled_for(flag_name, &pete));
+    fun_with_flags::disable_for_group(flag_name, "johns-group").unwrap();
     assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
     assert_eq!(false, fun_with_flags::enabled_for(flag_name, &pete));
 }
