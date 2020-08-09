@@ -1,6 +1,6 @@
 //!  
 //! # simple usage
-//! 
+//!
 //! ```rust
 //! use fun_with_flags::{enable, enabled};
 //! # use fun_with_flags::{Backend, FeatureFlag};
@@ -19,11 +19,11 @@
 //! #        enabled: true,
 //! #    })
 //! # });
-//! 
+//!
 //! // enable boolean flag `testing`
 //! // returns a result, Ok when the flag got set otherwise returns an Error
 //! enable("testing").is_ok();
-//! 
+//!
 //! // enabled will return true if the flag is enabled otherwise returns false
 //! if enabled("testing") {
 //!     // do something
@@ -32,27 +32,27 @@
 //! #    panic!()
 //! }
 //! ```
-//! 
+//!
 //! # Backends
-//! 
+//!
 //! Currently supports two backends Postgres and Redis.
-//! 
+//!
 //! For redis add: `features = ["redis-backend"]` to Cargo.toml
-//! 
+//!
 //! For Postgres add: `features = ["postgres-backend"]` to Cargo.toml
-//! 
-//! For Postgres you also need to add the fun_with_flags_toggles table to your database. The migration can be found in [migrations/00000000000001_create_feature_flags_table/up.sql](../master/migrations/00000000000001_create_feature_flags_table/up.sql). 
-//! 
+//!
+//! For Postgres you also need to add the fun_with_flags_toggles table to your database. The migration can be found in [migrations/00000000000001_create_feature_flags_table/up.sql](../master/migrations/00000000000001_create_feature_flags_table/up.sql).
+//!
 //! For more explanation look at the fun-with-flags elixir project.
-//! 
+//!
 //! After choosing your backend you must set the DATABASE_URL and DATABASE_NAME enviroment variables. This can also be set in a `.env` file. In the future it can also be set in a config file.
-//! 
+//!
 //! ```bash
 //! # for postgres
-//! export DATABASE_ADDRESS=postgres://username:password@localhost 
+//! export DATABASE_ADDRESS=postgres://username:password@localhost
 //! export DATABASE_NAME=fun_with_flags_repo
 //! ```
-//! 
+//!
 //! ```bash
 //! # for redis
 //! export DATABASE_ADDRESS=redis://localhost
@@ -63,10 +63,6 @@
 #[cfg(feature = "postgres-backend")]
 extern crate diesel;
 extern crate dotenv;
-
-#[cfg(feature = "postgres-backend")]
-#[allow(unused_imports)]
-use diesel::Connection;
 
 pub use models::FeatureFlag;
 pub use traits::{Actor, Group};

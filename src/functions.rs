@@ -1,3 +1,7 @@
+#[cfg(feature = "postgres-backend")]
+#[allow(unused_imports)]
+use diesel::Connection;
+
 use crate::models::GroupSet;
 use crate::{Actor, Backend, DBConnection, FeatureFlag, Group, Output};
 
