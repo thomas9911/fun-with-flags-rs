@@ -20,19 +20,19 @@ jobs:
       run: cargo build --verbose
   unit:
     runs-on: ubuntu-latest
-    needs: startup
+    needs: setup
     steps:
     - name: Run tests (unit)
       run: bash ./test_unit.sh
   postgres:
     runs-on: ubuntu-latest
-    needs: startup
+    needs: setup
     steps:
     - name: Run tests (postgres)
       run: bash ./test_postgres.sh
   redis:
     runs-on: ubuntu-latest
-    needs: startup
+    needs: setup
     steps:
     - name: Run tests (redis)
       run: bash ./test_redis.sh
