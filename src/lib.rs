@@ -59,9 +59,9 @@
 //! export DATABASE_NAME=0
 //! ```
 
-#[macro_use]
-#[cfg(feature = "postgres-backend")]
-extern crate diesel;
+// #[macro_use]
+// #[cfg(feature = "postgres-backend")]
+// extern crate diesel;
 extern crate dotenv;
 
 #[macro_use]
@@ -72,8 +72,8 @@ pub use traits::{Actor, Group};
 pub mod backend;
 pub mod models;
 
-#[cfg(feature = "postgres-backend")]
-pub mod schema;
+// #[cfg(feature = "postgres-backend")]
+// pub mod schema;
 
 pub mod config;
 pub mod functions;

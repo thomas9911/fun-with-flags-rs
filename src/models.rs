@@ -1,8 +1,9 @@
 use crate::Group;
 use std::collections::HashSet;
 
-#[cfg(feature = "postgres-backend")]
-#[derive(Debug, FromSqlRow)]
+// #[cfg(feature = "postgres-backend")]
+// #[derive(Debug, FromSqlRow)]
+#[derive(Debug)]
 pub struct RawFeatureFlag {
     pub flag_name: String,
     pub gate_type: String,

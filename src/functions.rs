@@ -1,6 +1,6 @@
-#[cfg(feature = "postgres-backend")]
-#[allow(unused_imports)]
-use diesel::Connection;
+// #[cfg(feature = "postgres-backend")]
+// #[allow(unused_imports)]
+// use diesel::Connection;
 
 use crate::config::{fetch_config, ConfigError};
 use crate::models::GroupSet;
