@@ -28,11 +28,11 @@ For redis add: `features = ["redis-backend"]` to Cargo.toml
 
 For Postgres add: `features = ["postgres-backend"]` to Cargo.toml
 
-For Postgres you also need to add the fun_with_flags_toggles table to your database. The migration can be found in [migrations/00000000000001_create_feature_flags_table/up.sql](../master/migrations/00000000000001_create_feature_flags_table/up.sql).
+For Postgres you also need to add the fun_with_flags_toggles table to your database. The migration can be found in [migrations/postgres/up.sql](../master/migrations/postgres/up.sql).
 
 For more explanation look at the fun-with-flags elixir project.
 
-After choosing your backend you must set the DATABASE_URL and DATABASE_NAME enviroment variables. This can also be set in a `.env` file. In the future it can also be set in a config file.
+After choosing your backend you must set the DATABASE_URL and DATABASE_NAME enviroment variables. This can also be set in a `.env` file.
 
 ```bash
 # for postgres
@@ -44,6 +44,23 @@ export DATABASE_NAME=fun_with_flags_repo
 # for redis
 export DATABASE_ADDRESS=redis://localhost
 export DATABASE_NAME=0
+```
+
+Or use the `fun-with-flags.toml` configuration file, you can omit the configuration for the backend you don't intend to use.
+```toml
+[general]
+# pick your backend
+backend = "redis"
+
+[redis]
+# redis configurations
+# 'url' can be anything that can be parsed by redis: `https://docs.rs/redis/latest/redis/fn.parse_redis_url.html`
+url = "redis://localhost"
+
+[postgres]
+# postgres configurations
+# 'url' can be anything that can be parsed by postgres: `https://docs.rs/postgres/latest/postgres/config/struct.Config.html`
+url = "postgres://username:password@localhost"
 ```
 
 Current version: 0.1.0

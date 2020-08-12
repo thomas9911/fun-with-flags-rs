@@ -69,7 +69,6 @@ mod postgres_test_context {
             client
                 .batch_execute("DROP DATABASE fun_with_flags_repo")
                 .expect("Couldn't drop database fun_with_flags_repo");
-
         }
 
         fn create_db(conn: &fun_with_flags::DBConnection) {
