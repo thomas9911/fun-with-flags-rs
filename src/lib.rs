@@ -72,9 +72,6 @@ pub use traits::{Actor, Group};
 pub mod backend;
 pub mod models;
 
-// #[cfg(feature = "postgres-backend")]
-// pub mod schema;
-
 pub mod config;
 pub mod functions;
 pub mod traits;

@@ -9,8 +9,8 @@ cfg_if::cfg_if! {
         pub mod redis;
         pub use self::redis::{Backend, DBConnection, GetOutput, SetOutput, DB};
     } else if #[cfg(feature = "postgres-backend")] {
-        pub mod other_postgres;
-        pub use other_postgres::{Backend, DBConnection, GetOutput, SetOutput, DB};
+        pub mod postgres;
+        pub use self::postgres::{Backend, DBConnection, GetOutput, SetOutput, DB};
     } else {
         pub mod null;
         pub use null::{MockBackend as Backend, DBConnection, GetOutput, SetOutput, DB};

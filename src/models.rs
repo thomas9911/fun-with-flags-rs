@@ -1,8 +1,6 @@
 use crate::Group;
 use std::collections::HashSet;
 
-// #[cfg(feature = "postgres-backend")]
-// #[derive(Debug, FromSqlRow)]
 #[derive(Debug)]
 pub struct RawFeatureFlag {
     pub flag_name: String,
@@ -103,21 +101,10 @@ impl From<RawOptionalFeatureFlag> for FeatureFlag {
                 target: flags.target.parse().expect("db contains invalid data"),
                 enabled: flags.enabled,
             },
-            _ => panic!("this gate is not supported"),
+            other_gate => panic!(format!("this gate ({}) is not supported", other_gate)),
         }
     }
 }
-
-// impl Default for RawOptionalFeatureFlag{
-//     fn new() -> Self {
-//         RawOptionalFeatureFlag{
-//             flag_name: None,
-//             gate_type: None,
-//             target: None,
-//             enabled: None,
-//         }
-//     }
-// }
 
 #[derive(Debug)]
 pub enum FeatureFlag {

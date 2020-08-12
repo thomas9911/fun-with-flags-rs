@@ -1,7 +1,3 @@
-// #[cfg(feature = "postgres-backend")]
-// #[allow(unused_imports)]
-// use diesel::Connection;
-
 use crate::config::{fetch_config, ConfigError};
 use crate::models::GroupSet;
 use crate::{Actor, Backend, DBConnection, FeatureFlag, Group, Output};
@@ -9,12 +5,6 @@ use crate::{Actor, Backend, DBConnection, FeatureFlag, Group, Output};
 pub fn establish_connection() -> Result<DBConnection, ConfigError> {
     let config = fetch_config().expect("database config is not correctly set");
 
-    // if let Some((_address, name)) = config.parts() {
-    //     establish_connection_to_database(&name)
-    // } else {
-    //     let url = config.to_url().unwrap();
-    //     DBConnection::establish(&url).expect(&format!("Error connecting to {}", url))
-    // }
     let url = config.to_url().ok_or(ConfigError::Message(
         "database config can not find correct url".into(),
     ))?;
