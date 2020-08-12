@@ -52,7 +52,17 @@ mod postgres_test_context {
         fn clean(&mut self) {
             println!("Clean up resources");
             let conn = fun_with_flags::establish_connection_to_database(MAIN_DATABASE);
-            let mut client = Self::get_client(&conn);
+            Self::drop_db(&conn);
+
+            self.is_dropped = true;
+        }
+
+        fn get_client(conn: &fun_with_flags::DBConnection) -> PostgresClient {
+            fun_with_flags::Backend::create_conn(conn).unwrap()
+        }
+
+        fn drop_db(conn: &fun_with_flags::DBConnection) {
+            let mut client = Self::get_client(conn);
 
             client.batch_execute("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'fun_with_flags_repo';")
                 .unwrap();
@@ -60,11 +70,6 @@ mod postgres_test_context {
                 .batch_execute("DROP DATABASE fun_with_flags_repo")
                 .expect("Couldn't drop database fun_with_flags_repo");
 
-            self.is_dropped = true;
-        }
-
-        fn get_client(conn: &fun_with_flags::DBConnection) -> PostgresClient {
-            fun_with_flags::Backend::create_conn(conn).unwrap()
         }
 
         fn create_db(conn: &fun_with_flags::DBConnection) {
@@ -76,17 +81,8 @@ mod postgres_test_context {
 
         fn migrate(conn: &fun_with_flags::DBConnection) {
             let mut client = Self::get_client(conn);
-            client.batch_execute(r#"
-            CREATE TABLE fun_with_flags_toggles (
-                id BIGSERIAL PRIMARY KEY,
-                flag_name VARCHAR NOT NULL,
-                gate_type VARCHAR NOT NULL,
-                target VARCHAR NOT NULL,
-                enabled BOOLEAN NOT NULL
-            );
-            
-            CREATE UNIQUE INDEX fwf_flag_name_gate_target_idx ON fun_with_flags_toggles (flag_name, gate_type, target);
-            "#).unwrap();
+            let migration = include_str!("../migrations/postgres/up.sql");
+            client.batch_execute(migration).unwrap();
         }
     }
 
