@@ -1,9 +1,5 @@
 use serial_test::serial;
 
-#[cfg(feature = "postgres-backend")]
-#[macro_use]
-extern crate diesel_migrations;
-
 struct Person {
     name: String,
 }
@@ -26,18 +22,14 @@ impl fun_with_flags::Group for Person {
 
 #[cfg(feature = "postgres-backend")]
 mod postgres_test_context {
-    extern crate diesel;
-
-    use diesel::connection::SimpleConnection;
-    use diesel::RunQueryDsl;
-
-    use diesel_migrations::MigrationConnection;
-
     use fun_with_flags;
+    use postgres::NoTls;
+
+    use r2d2_postgres::PostgresConnectionManager;
+
+    type PostgresClient = r2d2::PooledConnection<PostgresConnectionManager<NoTls>>;
 
     const MAIN_DATABASE: &'static str = "postgres";
-
-    embed_migrations!();
 
     pub struct TestContext {
         is_dropped: bool,
@@ -60,25 +52,37 @@ mod postgres_test_context {
         fn clean(&mut self) {
             println!("Clean up resources");
             let conn = fun_with_flags::establish_connection_to_database(MAIN_DATABASE);
-
-            let disconnect_users = "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'fun_with_flags_repo';";
-
-            diesel::sql_query(disconnect_users).execute(&conn).unwrap();
-
-            let _query = diesel::sql_query("DROP DATABASE fun_with_flags_repo")
-                .execute(&conn)
-                .expect("Couldn't drop database fun_with_flags_repo");
+            Self::drop_db(&conn);
 
             self.is_dropped = true;
         }
 
-        fn create_db<C: SimpleConnection>(conn: &C) {
-            conn.batch_execute("CREATE DATABASE fun_with_flags_repo;")
+        fn get_client(conn: &fun_with_flags::DBConnection) -> PostgresClient {
+            fun_with_flags::Backend::create_conn(conn).unwrap()
+        }
+
+        fn drop_db(conn: &fun_with_flags::DBConnection) {
+            let mut client = Self::get_client(conn);
+
+            client.batch_execute("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'fun_with_flags_repo';")
+                .unwrap();
+            client
+                .batch_execute("DROP DATABASE fun_with_flags_repo")
+                .expect("Couldn't drop database fun_with_flags_repo");
+
+        }
+
+        fn create_db(conn: &fun_with_flags::DBConnection) {
+            let mut client = Self::get_client(conn);
+            client
+                .batch_execute("CREATE DATABASE fun_with_flags_repo;")
                 .unwrap();
         }
 
-        fn migrate<C: MigrationConnection>(conn: &C) {
-            embedded_migrations::run(conn).unwrap();
+        fn migrate(conn: &fun_with_flags::DBConnection) {
+            let mut client = Self::get_client(conn);
+            let migration = include_str!("../migrations/postgres/up.sql");
+            client.batch_execute(migration).unwrap();
         }
     }
 
