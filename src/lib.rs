@@ -59,9 +59,6 @@
 //! export DATABASE_NAME=0
 //! ```
 
-// #[macro_use]
-// #[cfg(feature = "postgres-backend")]
-// extern crate diesel;
 extern crate dotenv;
 
 #[macro_use]
