@@ -1,6 +1,7 @@
 //!  
-//! # simple usage
+//! # Simple usage
 //!
+//! ## Boolean gate
 //! ```rust
 //! use fun_with_flags::{enable, enabled};
 //! # use fun_with_flags::{Backend, FeatureFlag};
@@ -30,6 +31,214 @@
 //! } else {
 //!     // do something else
 //! #    panic!()
+//! }
+//! ```
+//!
+//! ## Actor gate
+//! ```rust
+//! use fun_with_flags::{enable_for, enabled_for};
+//! # use fun_with_flags::{Backend, FeatureFlag};
+//! # let _mock = Backend::default();
+//! # let ctx = Backend::set_context();
+//! # ctx.expect().returning(|_, _| {
+//! #    Ok(vec![FeatureFlag::Actor {
+//! #        name: "testing".to_string(),
+//! #        target: "person-test".to_string(),
+//! #        enabled: true,
+//! #    }])
+//! # });
+//! # let ctx = Backend::get_context();
+//! # ctx.expect().returning(|_, _| {
+//! #    Ok(FeatureFlag::Actor {
+//! #        name: "testing".to_string(),
+//! #        target: "person-test".to_string(),
+//! #        enabled: true,
+//! #    })
+//! # });
+//!
+//! struct Person {
+//!     name: String
+//! }
+//!
+//! // implement Actor trait
+//! impl fun_with_flags::Actor for Person {
+//!     fn feature_flag_id(&self) -> String {
+//!         format!("person-{}", self.name)
+//!     }
+//! }
+//!
+//! // don't implement Group, by default always returns false
+//! impl fun_with_flags::Group for Person {}
+//!
+//! let test = Person{name: String::from("test")};
+//!
+//! // enable actor gate `testing`
+//! // returns a result
+//! enable_for("testing", &test).is_ok();
+//!
+//! // enabled will return true if the flag is enabled otherwise returns false
+//! if enabled_for("testing", &test) {
+//!     // do something
+//! } else {
+//!     // do something else
+//! #    panic!()
+//! }
+//! ```
+//!
+//! ## Group gate
+//! ```rust
+//! use fun_with_flags::{enable_for_group, disable_for_group, enabled_for};
+//! # use fun_with_flags::{Backend, FeatureFlag};
+//! # let _mock = Backend::default();
+//! # let ctx = Backend::set_context();
+//! # ctx.expect().returning(|_, _| {
+//! #    Ok(vec![FeatureFlag::Actor {
+//! #        name: "testing".to_string(),
+//! #        target: "person-test".to_string(),
+//! #        enabled: true,
+//! #    }])
+//! # });
+//! # let ctx = Backend::get_context();
+//! # ctx.expect().returning(|_, _| {
+//! #    Ok(FeatureFlag::Actor {
+//! #        name: "testing".to_string(),
+//! #        target: "person-test".to_string(),
+//! #        enabled: true,
+//! #    })
+//! # });
+//!
+//! struct Person {
+//!     name: String
+//! }
+//!
+//! // implement Actor trait
+//! impl fun_with_flags::Actor for Person {
+//!     fn feature_flag_id(&self) -> String {
+//!         format!("person-{}", self.name)
+//!     }
+//! }
+//! 
+//! // implement Group trait
+//! impl fun_with_flags::Group for Person {
+//!     fn is_in_group(&self, group_name: &str) -> bool {
+//!         match group_name {
+//!             "tests" => true,
+//!             // you can ofcourse do a match on the property of your struct
+//!             name if name == self.name => true,
+//!             _ => false,
+//!         }
+//!     }
+//! }
+//!
+//! let test = Person{name: String::from("Johnny Test")};
+//!
+//! // enable feature flag `testing` for group `tests`
+//! // returns a result
+//! enable_for_group("testing", "tests").is_ok();
+//!
+//! // enabled will return true if the flag is enabled otherwise returns false
+//! if enabled_for("testing", &test) {
+//!     // do something
+//! } else {
+//!     // do something else
+//! #    panic!()
+//! };
+//!
+//! // disable for `tests` group
+//! disable_for_group("testing", "tests").is_ok();
+//! // enable for `Johnny Test` or the name of the Person
+//! enable_for_group("testing", "Johnny Test").is_ok();
+//!
+//! if enabled_for("testing", &test) {
+//!     // do something
+//! } else {
+//!     // do something else
+//! #    panic!()
+//! }
+//! ```
+//!
+//! ## Percentage of time gate
+//! ```rust
+//! use fun_with_flags::{enable_percentage_of_time, enabled};
+//! # use fun_with_flags::{Backend, FeatureFlag};
+//! # let _mock = Backend::default();
+//! # let ctx = Backend::set_context();
+//! # ctx.expect().returning(|_, _| {
+//! #    Ok(vec![FeatureFlag::Time {
+//! #        name: "testing".to_string(),
+//! #        target: 0.05,
+//! #        enabled: true,
+//! #    }])
+//! # });
+//! # let ctx = Backend::get_context();
+//! # ctx.expect().returning(|_, _| {
+//! #    Ok(FeatureFlag::Time {
+//! #        name: "testing".to_string(),
+//! #        target: 0.05,
+//! #        enabled: true,
+//! #    })
+//! # });
+//!
+//! // enable flag `testing` of 5% of the time
+//! // returns a result
+//! enable_percentage_of_time("testing", 0.05).is_ok();
+//!
+//! // enabled will return true for 5% of the time the other 95% returns false
+//! if enabled("testing") {
+//!     // do 5% of the time
+//! } else {
+//!     // do 95% of the time
+//! }
+//! ```
+//!
+//! ## Percentage of actors gate
+//! ```rust
+//! use fun_with_flags::{enable_percentage_of_actors, enabled_for};
+//! # use fun_with_flags::{Backend, FeatureFlag};
+//! # let _mock = Backend::default();
+//! # let ctx = Backend::set_context();
+//! # ctx.expect().returning(|_, _| {
+//! #    Ok(vec![FeatureFlag::Percentage {
+//! #        name: "testing".to_string(),
+//! #        target: 0.05,
+//! #        enabled: true,
+//! #    }])
+//! # });
+//! # let ctx = Backend::get_context();
+//! # ctx.expect().returning(|_, _| {
+//! #    Ok(FeatureFlag::Percentage {
+//! #        name: "testing".to_string(),
+//! #        target: 0.05,
+//! #        enabled: true,
+//! #    })
+//! # });
+//!
+//! struct Person {
+//!     name: String
+//! }
+//!
+//! // implement Actor trait
+//! impl fun_with_flags::Actor for Person {
+//!     fn feature_flag_id(&self) -> String {
+//!         format!("person-{}", self.name)
+//!     }
+//! }
+//!
+//! // don't implement Group, by default always returns false
+//! impl fun_with_flags::Group for Person {}
+//!
+//! let test = Person{name: String::from("test")};
+//!
+//! // enable flag `testing` of 5% of the time based on the Actor.feature_flag_id
+//! // returns a result
+//! enable_percentage_of_actors("testing", 0.05).is_ok();
+//!
+//! // enabled will return true for 5% of the time based on the actor given the other 95% returns false
+//! if enabled_for("testing", &test) {
+//!     // do 5% of the time based on `test`
+//! # panic!()
+//! } else {
+//!     // do 95% of the time
 //! }
 //! ```
 //!
@@ -95,7 +304,13 @@ pub use functions::*;
 
 #[cfg(test)]
 mod tests {
-    use crate::{enable, enable_for, Backend, FeatureFlag};
+    use crate::{
+        enable, enable_for, enable_for_group, enable_percentage_of_actors, enabled_for, Actor,
+        Backend, FeatureFlag, Group,
+    };
+
+    use crate::models::GroupSet;
+
     use serial_test::serial;
 
     mod scores {
@@ -163,5 +378,76 @@ mod tests {
         });
 
         assert!(enable_for("oke", &"testing").is_ok());
+    }
+
+    #[test]
+    #[serial]
+    fn percentage_enable_for_test() {
+        let _mock = Backend::default();
+
+        let ctx = Backend::set_context();
+        ctx.expect().returning(|_, _| {
+            Ok(vec![FeatureFlag::Percentage {
+                name: "testing".to_string(),
+                target: 0.40,
+                enabled: true,
+            }])
+        });
+        let ctx = Backend::get_context();
+        ctx.expect().returning(|_, _| {
+            Ok(FeatureFlag::Percentage {
+                name: "testing".to_string(),
+                target: 0.40,
+                enabled: true,
+            })
+        });
+
+        enable_percentage_of_actors("testing", 0.40).unwrap();
+
+        assert!(enabled_for("testing", &"test"));
+    }
+
+    #[test]
+    #[serial]
+    fn enable_for_group_test() {
+        let _mock = Backend::default();
+
+        let ctx = Backend::set_context();
+        ctx.expect().returning(|_, _| {
+            Ok(vec![FeatureFlag::Group {
+                name: "testing".to_string(),
+                target: GroupSet::new("tests".to_string()),
+                enabled: true,
+            }])
+        });
+        let ctx = Backend::get_context();
+        ctx.expect().returning(|_, _| {
+            Ok(FeatureFlag::Group {
+                name: "testing".to_string(),
+                target: GroupSet::new("tests".to_string()),
+                enabled: true,
+            })
+        });
+
+        struct Test;
+
+        impl Group for Test {
+            fn is_in_group(&self, group_name: &str) -> bool {
+                match group_name {
+                    "tests" => true,
+                    _ => false,
+                }
+            }
+        }
+
+        impl Actor for Test {
+            fn feature_flag_id(&self) -> String {
+                String::from("TESTING")
+            }
+        }
+
+        enable_for_group("testing", "tests").unwrap();
+
+        assert!(enabled_for("testing", &Test {}));
     }
 }

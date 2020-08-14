@@ -16,3 +16,12 @@ pub trait Group {
         false
     }
 }
+
+impl<T> Group for T
+where
+    T: AsRef<str>,
+{
+    fn is_in_group(&self, _group_name: &str) -> bool {
+        false
+    }
+}

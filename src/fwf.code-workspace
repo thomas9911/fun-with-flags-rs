@@ -1,0 +1,22 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"sqltools.connections": [
+			{
+				"connectionTimeout": 5000,
+				"database": "fun_with_flags_repo",
+				"driver": "PostgreSQL",
+				"name": "localhost",
+				"password": "password",
+				"port": 5432,
+				"previewLimit": 50,
+				"server": "localhost",
+				"username": "username"
+			}
+		]
+	}
+}

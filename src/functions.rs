@@ -110,7 +110,7 @@ pub fn disabled(flag: &str) -> bool {
 pub fn enabled_for<T: Actor + Group>(flag: &str, actor: &T) -> bool {
     let conn = establish_connection().unwrap();
 
-    if let Ok(x) = Backend::get(
+    if let Ok(FeatureFlag::Actor { enabled: true, .. }) = Backend::get(
         &conn,
         FeatureFlag::Actor {
             name: flag.to_string(),
@@ -118,7 +118,7 @@ pub fn enabled_for<T: Actor + Group>(flag: &str, actor: &T) -> bool {
             enabled: true,
         },
     ) {
-        return *x.enabled();
+        return true;
     };
 
     if let Ok(FeatureFlag::Group {
@@ -148,7 +148,9 @@ pub fn enabled_for<T: Actor + Group>(flag: &str, actor: &T) -> bool {
             target: 0.0,
         },
     ) {
-        return target > score(flag, actor);
+        let score = score(flag, actor);
+        println!("{}", score);
+        return target > score;
     };
 
     false
@@ -251,4 +253,155 @@ fn generate_0_1() -> f64 {
     use rand::{thread_rng, Rng};
 
     thread_rng().sample(OpenClosed01)
+}
+
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        enable, enable_for, enable_for_group, enable_percentage_of_actors, enabled_for, Actor,
+        Backend, FeatureFlag, Group,
+    };
+
+    use crate::models::GroupSet;
+
+    use serial_test::serial;
+
+    mod scores {
+        // tested to work the same as the elixir implementation
+        use crate::score;
+
+        macro_rules! assert_near_equal {
+            ($left:expr, $right:expr) => {
+                if !float_cmp::approx_eq!(f64, $left, $right) {
+                    panic!(
+                        r#"assertion failed: `(left == right)`
+    left: `{:?}`,
+    right: `{:?}`"#,
+                        $left, $right
+                    )
+                }
+            };
+        }
+
+        #[test]
+        fn test_1() {
+            let expected: f64 = 0.6754302978515625;
+            let score = score("testing", &"test1234");
+
+            assert_near_equal!(expected, score)
+        }
+
+        #[test]
+        fn test_2() {
+            let expected: f64 = 0.3940582275390625;
+            let score = score("testing", &"123456789");
+
+            assert_near_equal!(expected, score)
+        }
+    }
+
+    #[test]
+    #[serial]
+    fn enable_test() {
+        let _mock = Backend::default();
+
+        let ctx = Backend::set_context();
+        ctx.expect().returning(|_, _| {
+            Ok(vec![FeatureFlag::Boolean {
+                name: "oke".to_string(),
+                enabled: true,
+            }])
+        });
+
+        assert!(enable("oke").is_ok());
+    }
+
+    #[test]
+    #[serial]
+    fn enable_for_test() {
+        let _mock = Backend::default();
+
+        let ctx = Backend::set_context();
+        ctx.expect().returning(|_, _| {
+            Ok(vec![FeatureFlag::Actor {
+                name: "oke".to_string(),
+                target: "testing".to_string(),
+                enabled: true,
+            }])
+        });
+
+        assert!(enable_for("oke", &"testing").is_ok());
+    }
+
+    #[test]
+    #[serial]
+    fn percentage_enable_for_test() {
+        let _mock = Backend::default();
+
+        let ctx = Backend::set_context();
+        ctx.expect().returning(|_, _| {
+            Ok(vec![FeatureFlag::Percentage {
+                name: "testing".to_string(),
+                target: 0.40,
+                enabled: true,
+            }])
+        });
+        let ctx = Backend::get_context();
+        ctx.expect().returning(|_, _| {
+            Ok(FeatureFlag::Percentage {
+                name: "testing".to_string(),
+                target: 0.40,
+                enabled: true,
+            })
+        });
+
+        enable_percentage_of_actors("testing", 0.40).unwrap();
+
+        assert!(enabled_for("testing", &"test"));
+    }
+
+    #[test]
+    #[serial]
+    fn enable_for_group_test() {
+        let _mock = Backend::default();
+
+        let ctx = Backend::set_context();
+        ctx.expect().returning(|_, _| {
+            Ok(vec![FeatureFlag::Group {
+                name: "testing".to_string(),
+                target: GroupSet::new("tests".to_string()),
+                enabled: true,
+            }])
+        });
+        let ctx = Backend::get_context();
+        ctx.expect().returning(|_, _| {
+            Ok(FeatureFlag::Group {
+                name: "testing".to_string(),
+                target: GroupSet::new("tests".to_string()),
+                enabled: true,
+            })
+        });
+
+        struct Test;
+
+        impl Group for Test {
+            fn is_in_group(&self, group_name: &str) -> bool {
+                match group_name {
+                    "tests" => true,
+                    _ => false,
+                }
+            }
+        }
+
+        impl Actor for Test {
+            fn feature_flag_id(&self) -> String {
+                String::from("TESTING")
+            }
+        }
+
+        enable_for_group("testing", "tests").unwrap();
+
+        assert!(enabled_for("testing", &Test {}));
+    }
 }
