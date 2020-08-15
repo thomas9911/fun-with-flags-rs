@@ -8,10 +8,10 @@
 //! # let _mock = Backend::default();
 //! # let ctx = Backend::set_context();
 //! # ctx.expect().returning(|_, _| {
-//! #    Ok(vec![FeatureFlag::Boolean {
+//! #    Ok(FeatureFlag::Boolean {
 //! #        name: "testing".to_string(),
 //! #        enabled: true,
-//! #    }])
+//! #    })
 //! # });
 //! # let ctx = Backend::get_context();
 //! # ctx.expect().returning(|_, _| {
@@ -41,11 +41,11 @@
 //! # let _mock = Backend::default();
 //! # let ctx = Backend::set_context();
 //! # ctx.expect().returning(|_, _| {
-//! #    Ok(vec![FeatureFlag::Actor {
+//! #    Ok(FeatureFlag::Actor {
 //! #        name: "testing".to_string(),
 //! #        target: "person-test".to_string(),
 //! #        enabled: true,
-//! #    }])
+//! #    })
 //! # });
 //! # let ctx = Backend::get_context();
 //! # ctx.expect().returning(|_, _| {
@@ -92,11 +92,11 @@
 //! # let _mock = Backend::default();
 //! # let ctx = Backend::set_context();
 //! # ctx.expect().returning(|_, _| {
-//! #    Ok(vec![FeatureFlag::Actor {
+//! #    Ok(FeatureFlag::Actor {
 //! #        name: "testing".to_string(),
 //! #        target: "person-test".to_string(),
 //! #        enabled: true,
-//! #    }])
+//! #    })
 //! # });
 //! # let ctx = Backend::get_context();
 //! # ctx.expect().returning(|_, _| {
@@ -117,7 +117,7 @@
 //!         format!("person-{}", self.name)
 //!     }
 //! }
-//! 
+//!
 //! // implement Group trait
 //! impl fun_with_flags::Group for Person {
 //!     fn is_in_group(&self, group_name: &str) -> bool {
@@ -164,11 +164,11 @@
 //! # let _mock = Backend::default();
 //! # let ctx = Backend::set_context();
 //! # ctx.expect().returning(|_, _| {
-//! #    Ok(vec![FeatureFlag::Time {
+//! #    Ok(FeatureFlag::Time {
 //! #        name: "testing".to_string(),
 //! #        target: 0.05,
 //! #        enabled: true,
-//! #    }])
+//! #    })
 //! # });
 //! # let ctx = Backend::get_context();
 //! # ctx.expect().returning(|_, _| {
@@ -198,11 +198,11 @@
 //! # let _mock = Backend::default();
 //! # let ctx = Backend::set_context();
 //! # ctx.expect().returning(|_, _| {
-//! #    Ok(vec![FeatureFlag::Percentage {
+//! #    Ok(FeatureFlag::Percentage {
 //! #        name: "testing".to_string(),
 //! #        target: 0.05,
 //! #        enabled: true,
-//! #    }])
+//! #    })
 //! # });
 //! # let ctx = Backend::get_context();
 //! # ctx.expect().returning(|_, _| {
@@ -293,6 +293,7 @@ extern crate serde_derive;
 pub use models::FeatureFlag;
 pub use traits::{Actor, Group};
 pub mod backend;
+pub mod error;
 pub mod models;
 
 pub mod config;
@@ -300,4 +301,5 @@ pub mod functions;
 pub mod traits;
 
 pub use backend::{Backend, DBConnection, SetOutput as Output};
+pub use error::Error;
 pub use functions::*;

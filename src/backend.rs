@@ -8,12 +8,12 @@ cfg_if::cfg_if! {
         pub mod redis;
         pub mod cached;
         pub use self::cached::Backend;
-        pub use self::redis::{Backend as DataBackend, DBConnection, GetOutput, SetOutput, DB};
+        pub use self::redis::{Backend as DataBackend, DBConnection, GetOutput, SetOutput, DB, ConnectionResult};
     } else if #[cfg(all(feature = "postgres-backend", feature = "cached"))]{
         pub mod postgres;
         pub mod cached;
         pub use self::cached::Backend;
-        pub use self::postgres::{Backend as DataBackend, DBConnection, GetOutput, SetOutput, DB};
+        pub use self::postgres::{Backend as DataBackend, DBConnection, GetOutput, SetOutput, DB, ConnectionResult};
     } else if #[cfg(feature = "redis-backend")]{
         pub mod redis;
         pub use self::redis::{Backend, DBConnection, GetOutput, SetOutput, DB};

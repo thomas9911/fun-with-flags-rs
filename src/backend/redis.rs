@@ -1,11 +1,12 @@
 use crate::models::{FeatureFlag, RawOptionalFeatureFlag, RawOptionalFeatureFlags};
+use crate::Error;
 use std::collections::HashSet;
 
 pub type DB = ();
 pub type DBConnection = Connection;
 pub type SetOutput = Result<FeatureFlag, ()>;
 pub type GetOutput = Result<FeatureFlag, ()>;
-pub type BackendError = Error;
+pub type ConnectionResult = Result<r2d2::PooledConnection<redis::Client>, r2d2::Error>;
 
 const NAMESPACE: &str = "fun_with_flags";
 
@@ -22,27 +23,6 @@ pub struct Backend {}
 
 pub struct Connection {
     pub pool: r2d2::Pool<redis::Client>,
-}
-
-#[derive(Debug)]
-pub struct Error(String);
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<r2d2::Error> for Error {
-    fn from(e: r2d2::Error) -> Self {
-        Error(e.to_string())
-    }
-}
-
-impl From<redis::RedisError> for Error {
-    fn from(e: redis::RedisError) -> Self {
-        Error(e.to_string())
-    }
 }
 
 impl Connection {
@@ -129,9 +109,7 @@ impl Backend {
         "redis"
     }
 
-    pub fn create_conn(
-        pool: &DBConnection,
-    ) -> Result<r2d2::PooledConnection<redis::Client>, r2d2::Error> {
+    pub fn create_conn(pool: &DBConnection) -> ConnectionResult {
         let pool = pool.pool.clone();
         pool.get()
     }

@@ -54,6 +54,12 @@ mod postgres_test_context {
             let conn = fun_with_flags::establish_connection_to_database(MAIN_DATABASE);
             Self::drop_db(&conn);
 
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "cached")] {
+                    fun_with_flags::backend::cached::flush_cache()
+                }
+            }
+
             self.is_dropped = true;
         }
 
@@ -113,6 +119,12 @@ mod redis_test_context {
             let db = fun_with_flags::establish_connection().unwrap();
 
             fun_with_flags::Backend::clean_all(&db).unwrap();
+
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "cached")] {
+                    fun_with_flags::backend::cached::flush_cache()
+                }
+            }
         }
     }
 }

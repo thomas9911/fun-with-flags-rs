@@ -255,7 +255,6 @@ fn generate_0_1() -> f64 {
     thread_rng().sample(OpenClosed01)
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::{

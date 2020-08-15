@@ -10,6 +10,8 @@ pub type DB = ();
 pub type DBConnection = Connection;
 pub type SetOutput = Result<FeatureFlag, Error>;
 pub type GetOutput = Result<FeatureFlag, Error>;
+pub type ConnectionResult =
+    Result<r2d2::PooledConnection<PostgresConnectionManager<NoTls>>, r2d2::Error>;
 
 #[derive(Debug)]
 pub struct Error(String);
@@ -148,9 +150,7 @@ impl Backend {
         "postgres"
     }
 
-    pub fn create_conn(
-        pool: &DBConnection,
-    ) -> Result<r2d2::PooledConnection<PostgresConnectionManager<NoTls>>, r2d2::Error> {
+    pub fn create_conn(pool: &DBConnection) -> ConnectionResult {
         let pool = pool.pool.clone();
         pool.get()
     }

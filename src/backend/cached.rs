@@ -1,13 +1,16 @@
 use std::sync::Mutex;
 use std::time::Duration;
 
-use lru_time_cache::LruCache;
+#[allow(unused_imports)]
+use crate::Error;
+
 use crate::FeatureFlag;
+use lru_time_cache::LruCache;
 use state::Storage;
 
-use crate::backend::{DataBackend, DBConnection, SetOutput, GetOutput};
+use crate::backend::{ConnectionResult, DBConnection, DataBackend, GetOutput, SetOutput};
 
-lazy_static::lazy_static!{
+lazy_static::lazy_static! {
     static ref GLOBAL_MAP: Storage<Mutex<LruCache<String, FeatureFlag>>> = {
         let storage = Storage::new();
         let initial_map = LruCache::with_expiry_duration_and_capacity(Duration::from_secs(60), 1000);
@@ -33,12 +36,34 @@ impl Backend {
                 set_in_cache(flag.clone());
                 Ok(flag)
             }
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
+    }
+
+    pub fn create_conn(pool: &DBConnection) -> ConnectionResult {
+        DataBackend::create_conn(pool)
     }
 }
 
-fn get_from_cache(flag: &FeatureFlag) -> Option<FeatureFlag>{
+#[cfg(feature = "redis-backend")]
+impl Backend {
+    pub fn all_flags_names(
+        pool: &DBConnection,
+    ) -> Result<std::collections::HashSet<String>, Error> {
+        DataBackend::all_flags_names(pool)
+    }
+
+    pub fn clean_all(pool: &DBConnection) -> Result<(), Error> {
+        flush_cache();
+        DataBackend::clean_all(pool)
+    }
+
+    pub fn clean(pool: &DBConnection, flag_name: &str) -> Result<(), Error> {
+        DataBackend::clean(pool, flag_name)
+    }
+}
+
+fn get_from_cache(flag: &FeatureFlag) -> Option<FeatureFlag> {
     let key = flag.to_cache_key();
 
     let mut cache = GLOBAL_MAP.get().lock().unwrap();
@@ -46,7 +71,7 @@ fn get_from_cache(flag: &FeatureFlag) -> Option<FeatureFlag>{
     cache.get(&key).cloned()
 }
 
-fn set_in_cache(flag: FeatureFlag){
+fn set_in_cache(flag: FeatureFlag) {
     let key = flag.to_cache_key();
 
     let mut cache = GLOBAL_MAP.get().lock().unwrap();
@@ -54,9 +79,18 @@ fn set_in_cache(flag: FeatureFlag){
     cache.insert(key, flag);
 }
 
+pub fn flush_cache() {
+    let mut cache = GLOBAL_MAP.get().lock().unwrap();
+
+    cache.clear()
+}
+
 #[test]
 fn oke() {
-    let ff = FeatureFlag::Boolean{name: "oke".to_string(), enabled: true};
+    let ff = FeatureFlag::Boolean {
+        name: "oke".to_string(),
+        enabled: true,
+    };
     set_in_cache(ff.clone());
     let f = get_from_cache(&ff);
     println!("{:?}", f);
@@ -64,16 +98,16 @@ fn oke() {
     panic!();
 }
 
-impl FeatureFlag{
+impl FeatureFlag {
     pub fn to_cache_key(&self) -> String {
         use FeatureFlag::*;
 
         match self {
-            Boolean{name, ..} => format!("boolean-{}", name),
-            Actor{name, ..} => format!("actor-{}", name),
-            Group{name, ..} => format!("group-{}", name),
-            Time{name, ..} => format!("time-{}", name),
-            Percentage{name, ..} => format!("percentage-{}", name),
+            Boolean { name, .. } => format!("boolean-{}", name),
+            Actor { name, target, .. } => format!("actor-{}-{}", target, name),
+            Group { name, .. } => format!("group-{}", name),
+            Time { name, .. } => format!("time-{}", name),
+            Percentage { name, .. } => format!("percentage-{}", name),
         }
     }
 }
