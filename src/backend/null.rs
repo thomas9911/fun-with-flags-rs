@@ -4,7 +4,7 @@ use mockall::automock;
 
 pub type DB = ();
 pub type DBConnection = Connection;
-pub type SetOutput = Result<Vec<FeatureFlag>, ()>;
+pub type SetOutput = Result<FeatureFlag, ()>;
 pub type GetOutput = Result<FeatureFlag, ()>;
 
 pub struct Backend {}

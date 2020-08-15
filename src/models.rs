@@ -106,7 +106,7 @@ impl From<RawOptionalFeatureFlag> for FeatureFlag {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum FeatureFlag {
     Boolean {
         name: String,
@@ -134,7 +134,7 @@ pub enum FeatureFlag {
     },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GroupSet {
     data: HashSet<String>,
     length: usize,

@@ -21,6 +21,8 @@ r2d2 = {version = "0.8.9", optional = true}
 redis = {version = "0.17.0", features = ["r2d2"], optional = true}
 postgres = {version = "0.17.5", optional = true}
 r2d2_postgres = {version = "0.16.0", optional = true}
+state = {version = "*", optional = true}
+lru_time_cache = {version = "*", optional = true}
 
 [dev-dependencies]
 serial_test = "*"
@@ -29,6 +31,7 @@ float-cmp = "*"
 [features]
 redis-backend = ["r2d2", "redis"]
 postgres-backend = ["r2d2", "postgres", "r2d2_postgres"]
+cached = ["state", "lru_time_cache"]
 
 [[example]]
 name = "postgres"

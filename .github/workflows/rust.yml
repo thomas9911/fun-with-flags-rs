@@ -24,3 +24,7 @@ jobs:
       run: bash ./test_postgres.sh
     - name: Run tests (redis)
       run: bash ./test_redis.sh
+    - name: Run tests (cached postgres)
+      run: bash ./test_cached_postgres.sh
+    - name: Run tests (cached redis)
+      run: bash ./test_cached_redis.sh

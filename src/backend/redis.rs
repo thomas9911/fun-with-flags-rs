@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 pub type DB = ();
 pub type DBConnection = Connection;
-pub type SetOutput = Result<Vec<FeatureFlag>, ()>;
+pub type SetOutput = Result<FeatureFlag, ()>;
 pub type GetOutput = Result<FeatureFlag, ()>;
 pub type BackendError = Error;
 
@@ -71,7 +71,7 @@ impl Backend {
 
         let flag = Self::get(pool, flag)?;
 
-        Ok(vec![flag])
+        Ok(flag)
     }
 
     pub fn get(pool: &DBConnection, flag: FeatureFlag) -> GetOutput {

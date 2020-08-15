@@ -1,0 +1,1 @@
+DATABASE_ADDRESS=redis://localhost DATABASE_NAME=0 cargo test --features "redis-backend cached" --test integration

@@ -4,7 +4,16 @@ cfg_if::cfg_if! {
     if #[cfg(test)] {
         pub mod null;
         pub use null::{MockBackend as Backend, DBConnection, GetOutput, SetOutput, DB};
-
+    } else if #[cfg(all(feature = "redis-backend", feature = "cached"))]{
+        pub mod redis;
+        pub mod cached;
+        pub use self::cached::Backend;
+        pub use self::redis::{Backend as DataBackend, DBConnection, GetOutput, SetOutput, DB};
+    } else if #[cfg(all(feature = "postgres-backend", feature = "cached"))]{
+        pub mod postgres;
+        pub mod cached;
+        pub use self::cached::Backend;
+        pub use self::postgres::{Backend as DataBackend, DBConnection, GetOutput, SetOutput, DB};
     } else if #[cfg(feature = "redis-backend")]{
         pub mod redis;
         pub use self::redis::{Backend, DBConnection, GetOutput, SetOutput, DB};

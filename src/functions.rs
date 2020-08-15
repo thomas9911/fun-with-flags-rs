@@ -308,10 +308,10 @@ mod tests {
 
         let ctx = Backend::set_context();
         ctx.expect().returning(|_, _| {
-            Ok(vec![FeatureFlag::Boolean {
+            Ok(FeatureFlag::Boolean {
                 name: "oke".to_string(),
                 enabled: true,
-            }])
+            })
         });
 
         assert!(enable("oke").is_ok());
@@ -324,11 +324,11 @@ mod tests {
 
         let ctx = Backend::set_context();
         ctx.expect().returning(|_, _| {
-            Ok(vec![FeatureFlag::Actor {
+            Ok(FeatureFlag::Actor {
                 name: "oke".to_string(),
                 target: "testing".to_string(),
                 enabled: true,
-            }])
+            })
         });
 
         assert!(enable_for("oke", &"testing").is_ok());
@@ -341,11 +341,11 @@ mod tests {
 
         let ctx = Backend::set_context();
         ctx.expect().returning(|_, _| {
-            Ok(vec![FeatureFlag::Percentage {
+            Ok(FeatureFlag::Percentage {
                 name: "testing".to_string(),
                 target: 0.40,
                 enabled: true,
-            }])
+            })
         });
         let ctx = Backend::get_context();
         ctx.expect().returning(|_, _| {
@@ -368,11 +368,11 @@ mod tests {
 
         let ctx = Backend::set_context();
         ctx.expect().returning(|_, _| {
-            Ok(vec![FeatureFlag::Group {
+            Ok(FeatureFlag::Group {
                 name: "testing".to_string(),
                 target: GroupSet::new("tests".to_string()),
                 enabled: true,
-            }])
+            })
         });
         let ctx = Backend::get_context();
         ctx.expect().returning(|_, _| {
