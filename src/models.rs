@@ -132,6 +132,7 @@ pub enum FeatureFlag {
         target: f64,
         enabled: bool,
     },
+    Empty,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -188,6 +189,12 @@ impl From<HashSet<String>> for GroupSet {
     }
 }
 
+impl PartialEq for FeatureFlag {
+    fn eq(&self, other: &Self) -> bool {
+        self.same(other)
+    }
+}
+
 impl FeatureFlag {
     pub fn enabled<'a>(&'a self) -> &'a bool {
         use FeatureFlag::*;
@@ -198,6 +205,7 @@ impl FeatureFlag {
             Group { enabled, .. } => enabled,
             Time { enabled, .. } => enabled,
             Percentage { enabled, .. } => enabled,
+            Empty => &false,
         }
     }
 
@@ -210,6 +218,7 @@ impl FeatureFlag {
             Group { name, .. } => name,
             Time { name, .. } => name,
             Percentage { name, .. } => name,
+            Empty => "",
         }
     }
 
@@ -255,6 +264,11 @@ impl FeatureFlag {
                     name: ref stored_name,
                     ..
                 } => stored_name == name,
+                _ => false,
+            },
+
+            Empty => match other {
+                &Empty => true,
                 _ => false,
             },
         }

@@ -1,4 +1,5 @@
 use crate::models::{FeatureFlag, GroupSet, RawFeatureFlag};
+use crate::Error;
 
 use postgres::types::ToSql;
 use postgres::NoTls;
@@ -6,43 +7,60 @@ use postgres::Row;
 
 use r2d2_postgres::PostgresConnectionManager;
 
+use std::sync::Mutex;
+use state::Storage;
+
 pub type DB = ();
 pub type DBConnection = Connection;
 pub type SetOutput = Result<FeatureFlag, Error>;
 pub type GetOutput = Result<FeatureFlag, Error>;
 pub type ConnectionResult =
-    Result<r2d2::PooledConnection<PostgresConnectionManager<NoTls>>, r2d2::Error>;
+    Result<r2d2::PooledConnection<PostgresConnectionManager<NoTls>>, Error>;
+type Pool = r2d2::Pool<PostgresConnectionManager<NoTls>>;
 
-#[derive(Debug)]
-pub struct Error(String);
+// #[derive(Debug)]
+// pub struct Error(String);
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
+// impl std::fmt::Display for Error {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "{}", self.0)
+//     }
+// }
 
-impl From<r2d2::Error> for Error {
-    fn from(e: r2d2::Error) -> Self {
-        Error(e.to_string())
-    }
-}
+// impl From<r2d2::Error> for Error {
+//     fn from(e: r2d2::Error) -> Self {
+//         Error(e.to_string())
+//     }
+// }
 
-impl From<postgres::Error> for Error {
-    fn from(e: postgres::Error) -> Self {
-        Error(e.to_string())
-    }
+// impl From<postgres::Error> for Error {
+//     fn from(e: postgres::Error) -> Self {
+//         Error(e.to_string())
+//     }
+// }
+
+lazy_static::lazy_static! {
+    static ref GLOBAL_POOL: Storage<Mutex<Pool>> = Storage::new();
 }
 
 pub struct Connection {
-    pub pool: r2d2::Pool<PostgresConnectionManager<NoTls>>,
+    config: String
+    // pub pool: r2d2::Pool<PostgresConnectionManager<NoTls>>,
 }
 
 impl Connection {
-    pub fn establish(url: &str) -> Result<Connection, ()> {
-        let manager = PostgresConnectionManager::new(url.parse().unwrap(), NoTls);
-        let pool = r2d2::Pool::new(manager).unwrap();
-        Ok(Connection { pool })
+    pub fn establish(url: &str) -> Result<Connection, Error> {
+        // let manager = PostgresConnectionManager::new(url.parse()?, NoTls);
+        // let pool = r2d2::Pool::new(manager)?;
+        // Ok(Connection { pool })
+        if GLOBAL_POOL.try_get().is_some() {
+            Ok(Connection{config: url.to_string()})
+        } else{ 
+            let manager = PostgresConnectionManager::new(url.parse()?, NoTls);
+            let pool = r2d2::Pool::new(manager)?;
+            GLOBAL_POOL.set(Mutex::new(pool));
+            Self::establish(url)
+        }
     }
 }
 
@@ -122,13 +140,13 @@ impl Backend {
         use FeatureFlag::*;
 
         let insertable = flag.to_row();
-        let db_result = match flag {
+        if let Some(db_result) = match flag {
             Time { .. } | Percentage { .. } | Group { .. } => {
                 let query = r#"SELECT "fun_with_flags_toggles"."id", "fun_with_flags_toggles"."flag_name", "fun_with_flags_toggles"."gate_type", "fun_with_flags_toggles"."target", "fun_with_flags_toggles"."enabled" 
                 FROM "fun_with_flags_toggles" WHERE "fun_with_flags_toggles"."flag_name" = $1 AND "fun_with_flags_toggles"."gate_type" = $2"#;
                 let arguments: Vec<&(dyn ToSql + Sync)> =
                     vec![&insertable.flag_name, &insertable.gate_type];
-                conn.query_one(query, &arguments)?
+                conn.query_opt(query, &arguments)?
             }
 
             _ => {
@@ -139,20 +157,31 @@ impl Backend {
                     &insertable.gate_type,
                     &insertable.target,
                 ];
-                conn.query_one(query, &arguments)?
+                conn.query_opt(query, &arguments)?
             }
-        };
-
-        Ok(FeatureFlag::from_row(db_result))
+        } {
+            Ok(FeatureFlag::from_row(db_result))
+        } else {
+            Ok(FeatureFlag::Empty)
+        }
     }
 
     pub fn backend_name() -> &'static str {
         "postgres"
     }
 
-    pub fn create_conn(pool: &DBConnection) -> ConnectionResult {
-        let pool = pool.pool.clone();
-        pool.get()
+    pub fn create_conn(config: &DBConnection) -> ConnectionResult {
+        // let pool = pool.pool.clone();
+        // pool.get()
+        if let Some(pool) = GLOBAL_POOL.try_get() {
+            let locked_pool = pool.lock().unwrap();
+            let cloned_pool = locked_pool.clone();
+            let conn = cloned_pool.get()?;
+            Ok(conn)
+        } else{ 
+            DBConnection::establish(&config.config)?;
+            Self::create_conn(config)
+        }
     }
 }
 
@@ -207,6 +236,7 @@ impl FeatureFlag {
                 target: format!("actors/{}", target),
                 enabled: *enabled,
             },
+            Empty => panic!("can not set this value"),
         }
     }
 

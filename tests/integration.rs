@@ -78,16 +78,39 @@ mod postgres_test_context {
         }
 
         fn create_db(conn: &fun_with_flags::DBConnection) {
+            if Self::database_not_exists(conn) {
+                let mut client = Self::get_client(conn);
+                client
+                    .batch_execute("CREATE DATABASE fun_with_flags_repo;")
+                    .unwrap();
+            }
+        }
+
+        fn database_not_exists(conn: &fun_with_flags::DBConnection) -> bool {
             let mut client = Self::get_client(conn);
             client
-                .batch_execute("CREATE DATABASE fun_with_flags_repo;")
-                .unwrap();
+                .query(
+                    "SELECT 1 as column from pg_database where datname = 'fun_with_flags_repo';",
+                    &[],
+                )
+                .unwrap()
+                .is_empty()
+        }
+
+        fn table_not_exists(conn: &fun_with_flags::DBConnection) -> bool {
+            let mut client = Self::get_client(conn);
+            client
+                .query("SELECT 1 as column FROM information_schema.tables WHERE table_name = 'fun_with_flags_toggles';", &[])
+                .unwrap()
+                .is_empty()
         }
 
         fn migrate(conn: &fun_with_flags::DBConnection) {
             let mut client = Self::get_client(conn);
             let migration = include_str!("../migrations/postgres/up.sql");
-            client.batch_execute(migration).unwrap();
+            if Self::table_not_exists(conn) {
+                client.batch_execute(migration).unwrap();
+            }
         }
     }
 
@@ -289,4 +312,25 @@ fn enable_for_group_specific() {
     fun_with_flags::disable_for_group(flag_name, "johns-group").unwrap();
     assert_eq!(false, fun_with_flags::enabled_for(flag_name, &john));
     assert_eq!(false, fun_with_flags::enabled_for(flag_name, &pete));
+}
+
+#[test]
+#[serial]
+fn get_returns_empty_when_flag_not_found() {
+    use fun_with_flags::{Backend, FeatureFlag};
+
+    let mut _ctx = TestContext::new();
+    let db = fun_with_flags::establish_connection().unwrap();
+
+    let res = Backend::get(
+        &db,
+        FeatureFlag::Time {
+            name: "empty".to_string(),
+            enabled: true,
+            target: 0.0,
+        },
+    )
+    .unwrap();
+
+    assert_eq!(res, FeatureFlag::Empty)
 }

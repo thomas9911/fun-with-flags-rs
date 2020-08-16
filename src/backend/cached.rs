@@ -108,6 +108,7 @@ impl FeatureFlag {
             Group { name, .. } => format!("group-{}", name),
             Time { name, .. } => format!("time-{}", name),
             Percentage { name, .. } => format!("percentage-{}", name),
+            Empty => panic!("can not set this value"),
         }
     }
 }

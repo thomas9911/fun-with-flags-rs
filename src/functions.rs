@@ -75,14 +75,14 @@ pub fn disable_for<T: Actor>(flag: &str, actor: &T) -> Output {
 pub fn enabled(flag: &str) -> bool {
     let conn = establish_connection().unwrap();
 
-    if let Ok(x) = Backend::get(
+    if let Ok(FeatureFlag::Boolean { enabled: true, .. }) = Backend::get(
         &conn,
         FeatureFlag::Boolean {
             name: flag.to_string(),
             enabled: true,
         },
     ) {
-        return *x.enabled();
+        return true;
     };
 
     if let Ok(FeatureFlag::Time {

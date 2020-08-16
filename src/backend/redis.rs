@@ -1,16 +1,23 @@
 use crate::models::{FeatureFlag, RawOptionalFeatureFlag, RawOptionalFeatureFlags};
 use crate::Error;
 use std::collections::HashSet;
+use std::sync::Mutex;
+use state::Storage;
+use redis::Commands;
 
 pub type DB = ();
 pub type DBConnection = Connection;
-pub type SetOutput = Result<FeatureFlag, ()>;
-pub type GetOutput = Result<FeatureFlag, ()>;
-pub type ConnectionResult = Result<r2d2::PooledConnection<redis::Client>, r2d2::Error>;
+pub type SetOutput = Result<FeatureFlag, Error>;
+pub type GetOutput = Result<FeatureFlag, Error>;
+pub type ConnectionResult = Result<PooledConnection, Error>;
+type PooledConnection = r2d2::PooledConnection<redis::Client>;
+type Pool = r2d2::Pool<redis::Client>;
 
 const NAMESPACE: &str = "fun_with_flags";
 
-use redis::Commands;
+lazy_static::lazy_static! {
+    static ref GLOBAL_POOL: Storage<Mutex<Pool>> = Storage::new();
+}
 
 ///
 /// redis contains a fun_with_flags set field with all keys that are used
@@ -22,20 +29,25 @@ use redis::Commands;
 pub struct Backend {}
 
 pub struct Connection {
-    pub pool: r2d2::Pool<redis::Client>,
+    pub config: String
 }
 
 impl Connection {
     pub fn establish(url: &str) -> Result<Connection, Error> {
-        let manager = redis::Client::open(url)?;
-        let pool = r2d2::Pool::builder().max_size(15).build(manager)?;
-        Ok(Connection { pool })
+        if GLOBAL_POOL.try_get().is_some() {
+            Ok(Connection{config: url.to_string()})
+        } else{ 
+            let manager = redis::Client::open(url)?;
+            let pool = r2d2::Pool::builder().max_size(15).build(manager)?;
+            GLOBAL_POOL.set(Mutex::new(pool));
+            Self::establish(url)
+        }
     }
 }
 
 impl Backend {
     pub fn set(pool: &DBConnection, flag: FeatureFlag) -> SetOutput {
-        let mut conn = Self::create_conn(pool).unwrap();
+        let mut conn = Self::create_conn(pool)?;
 
         let (k, v) = flag.to_redis_value();
         let key = flag_key(&flag);
@@ -46,24 +58,26 @@ impl Backend {
             .ignore()
             .hset(&key, k, v)
             .ignore()
-            .query(&mut *conn)
-            .expect("handle error");
+            .query(&mut *conn)?;
 
-        let flag = Self::get(pool, flag)?;
+        let flag =  Self::priv_get(conn, flag)?;
 
         Ok(flag)
     }
 
     pub fn get(pool: &DBConnection, flag: FeatureFlag) -> GetOutput {
-        let mut conn = Self::create_conn(pool).unwrap();
+        let conn = Self::create_conn(pool)?;
+        Self::priv_get(conn, flag)
+    }
 
-        let mut map: RawOptionalFeatureFlags = conn.hgetall(flag_key(&flag)).expect("handle error");
+    fn priv_get(mut conn: PooledConnection, flag: FeatureFlag) -> GetOutput {
+        let mut map: RawOptionalFeatureFlags = conn.hgetall(flag_key(&flag))?;
 
         Self::post_processing(&flag, &mut map);
 
         match map.find(&flag) {
             Some(x) => Ok(x),
-            None => Err(()),
+            None => Ok(FeatureFlag::Empty),
         }
     }
 
@@ -109,9 +123,16 @@ impl Backend {
         "redis"
     }
 
-    pub fn create_conn(pool: &DBConnection) -> ConnectionResult {
-        let pool = pool.pool.clone();
-        pool.get()
+    pub fn create_conn(config: &DBConnection) -> ConnectionResult {
+        if let Some(pool) = GLOBAL_POOL.try_get() {
+            let locked_pool = pool.lock().unwrap();
+            let cloned_pool = locked_pool.clone();
+            let conn = cloned_pool.get()?;
+            Ok(conn)
+        } else{ 
+            DBConnection::establish(&config.config)?;
+            Self::create_conn(config)
+        }
     }
 }
 
@@ -192,7 +213,7 @@ impl redis::FromRedisValue for RawOptionalFeatureFlags {
             _ => Err(RedisError::from((
                 ErrorKind::TypeError,
                 "Response type not hashmap compatible",
-            ))), // _ => invalid_type_error!(v, "Response type not hashmap compatible"),
+            ))),
         }
     }
 }
@@ -214,6 +235,7 @@ impl FeatureFlag {
             ),
             Time { target, .. } => ("percentage".to_string(), format!("time/{}", target)),
             Percentage { target, .. } => ("percentage".to_string(), format!("actors/{}", target)),
+            Empty => panic!("can not set this value"),
         };
         x
     }

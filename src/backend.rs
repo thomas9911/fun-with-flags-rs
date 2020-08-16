@@ -1,4 +1,29 @@
 use crate::FeatureFlag;
+// #[cfg(feature = "r2d2")]
+// use crate::Error;
+
+// #[derive(Debug, PartialEq)]
+// pub struct FakeConnection(bool);
+
+// pub struct FakeManager;
+
+// #[cfg(feature = "r2d2")]
+// impl r2d2::ManageConnection for FakeManager {
+//     type Connection = FakeConnection;
+//     type Error = Error;
+
+//     fn connect(&self) -> Result<FakeConnection, Error> {
+//         Ok(FakeConnection(true))
+//     }
+
+//     fn is_valid(&self, _: &mut FakeConnection) -> Result<(), Error> {
+//         Ok(())
+//     }
+
+//     fn has_broken(&self, _: &mut FakeConnection) -> bool {
+//         false
+//     }
+// }
 
 cfg_if::cfg_if! {
     if #[cfg(test)] {
