@@ -59,16 +59,39 @@ mod postgres_test_context {
         }
 
         fn create_db(conn: &fun_with_flags::DBConnection) {
+            if Self::database_not_exists(conn) {
+                let mut client = Self::get_client(conn);
+                client
+                    .batch_execute("CREATE DATABASE fun_with_flags_repo;")
+                    .unwrap();
+            }
+        }
+
+        fn database_not_exists(conn: &fun_with_flags::DBConnection) -> bool {
             let mut client = Self::get_client(conn);
             client
-                .batch_execute("CREATE DATABASE fun_with_flags_repo;")
-                .unwrap();
+                .query(
+                    "SELECT 1 as column from pg_database where datname = 'fun_with_flags_repo';",
+                    &[],
+                )
+                .unwrap()
+                .is_empty()
+        }
+
+        fn table_not_exists(conn: &fun_with_flags::DBConnection) -> bool {
+            let mut client = Self::get_client(conn);
+            client
+                .query("SELECT 1 as column FROM information_schema.tables WHERE table_name = 'fun_with_flags_toggles';", &[])
+                .unwrap()
+                .is_empty()
         }
 
         fn migrate(conn: &fun_with_flags::DBConnection) {
             let mut client = Self::get_client(conn);
             let migration = include_str!("../migrations/postgres/up.sql");
-            client.batch_execute(migration).unwrap();
+            if Self::table_not_exists(conn) {
+                client.batch_execute(migration).unwrap();
+            }
         }
     }
 

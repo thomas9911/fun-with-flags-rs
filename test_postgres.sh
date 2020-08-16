@@ -1,1 +1,0 @@
-DATABASE_ADDRESS=postgres://username:password@localhost DATABASE_NAME=fun_with_flags_repo cargo test --features postgres-backend --test integration
