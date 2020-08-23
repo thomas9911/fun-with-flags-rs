@@ -2,6 +2,10 @@ version: "3"
 services:
   postgres:
     image: postgres
+    command:
+      - "postgres"
+      - "-d"
+      - "2"
     environment:
       - POSTGRES_USER=username 
       - POSTGRES_PASSWORD=password
@@ -20,3 +24,10 @@ services:
     image: redis
     ports:
       - 6379:6379
+  couchdb:
+    image: couchdb
+    ports:
+      - 5984:5984
+    environment:
+      - COUCHDB_USER=username
+      - COUCHDB_PASSWORD=password
